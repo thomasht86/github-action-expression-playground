@@ -12,6 +12,8 @@ export interface GitHubContext {
   job: string
   path: string
   ref: string
+  ref_name: string
+  ref_type: string
   repository: string
   repository_owner: string
   run_id: string
@@ -45,9 +47,10 @@ export interface EvaluationContext {
 
 export interface ExpressionResult {
   value: any
-  type: string
-  contextHits: string[]
+  type?: string
+  contextHits?: string[]
   error?: string
+  success?: boolean
 }
 
 export interface ValidationError {

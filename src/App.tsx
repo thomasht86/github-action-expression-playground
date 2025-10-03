@@ -1,69 +1,23 @@
-import { useState, useCallback, useEffect } from 'react'
-import { Editor } from './components/Editor'
+import { useState, useEffect } from 'react'
+import { ExpressionInput } from './components/ExpressionInput'
 import { ContextBuilder } from './components/ContextBuilder'
-import { ResultsPanel } from './components/ResultsPanel'
-import { ImportExport } from './components/ImportExport'
-import { ContextVariable, GitHubContext, ExpressionResult, ValidationError, EvaluationContext } from './types'
+import { QuickContextSelector } from './components/QuickContextSelector'
+import { ExpressionExamples } from './components/ExpressionExamples'
+import { ContextVariable, GitHubContext, ExpressionResult, EvaluationContext } from './types'
 import { ExpressionEvaluator } from './utils/expressionEvaluator'
-import { YAMLValidator } from './utils/yamlValidator'
 import './App.css'
 
-const defaultWorkflow = `name: Example Workflow
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-env:
-  NODE_VERSION: 18
-  APP_ENV: production
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    env:
-      TEST_ENV: test
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: \${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-        env:
-          DATABASE_URL: \${{ secrets.DATABASE_URL }}
-
-      - name: Deploy
-        if: \${{ github.ref == 'refs/heads/main' && env.APP_ENV == 'production' }}
-        run: echo "Deploying to production"
-        env:
-          DEPLOY_KEY: \${{ secrets.DEPLOY_KEY }}
-`
-
 function App() {
-  const [workflowYaml, setWorkflowYaml] = useState(defaultWorkflow)
-  const [variables, setVariables] = useState<ContextVariable[]>([
-    { name: 'NODE_VERSION', value: '18', type: 'env', scope: 'workflow' },
-    { name: 'APP_ENV', value: 'production', type: 'env', scope: 'workflow' },
-    { name: 'TEST_ENV', value: 'test', type: 'env', scope: 'job' },
-    { name: 'DATABASE_URL', value: 'postgresql://localhost:5432/test', type: 'secrets', scope: 'step' },
-    { name: 'DEPLOY_KEY', value: 'secret-key-123', type: 'secrets', scope: 'step' },
-    { name: 'BRANCH_NAME', value: 'main', type: 'vars', scope: 'workflow' },
-  ])
+  const [variables, setVariables] = useState<ContextVariable[]>([])
   const [github, setGitHub] = useState<Partial<GitHubContext>>({
-    repository: 'owner/repo',
-    repository_owner: 'owner',
+    repository: 'octocat/hello-world',
+    repository_owner: 'octocat',
     ref: 'refs/heads/main',
-    sha: 'abc123456789',
+    ref_name: 'main',
+    ref_type: 'branch',
+    sha: 'ffac537e6cbbf934b08745a378932722df287a53',
     event_name: 'push',
-    actor: 'github-user',
+    actor: 'octocat',
     workflow: 'CI',
     job: 'build',
     run_id: '1234567890',
@@ -81,37 +35,37 @@ function App() {
     path: '',
     event: {
       ref: 'refs/heads/main',
-      before: 'previous-commit-sha',
-      after: 'abc123456789',
+      before: '0000000000000000000000000000000000000000',
+      after: 'ffac537e6cbbf934b08745a378932722df287a53',
       repository: {
         id: 123456789,
-        name: 'repo',
-        full_name: 'owner/repo',
+        name: 'hello-world',
+        full_name: 'octocat/hello-world',
         owner: {
-          login: 'owner',
-          id: 987654321
+          login: 'octocat',
+          id: 1
         },
         default_branch: 'main',
         private: false
       },
       pusher: {
-        name: 'github-user',
-        email: 'user@example.com'
+        name: 'octocat',
+        email: 'octocat@github.com'
       },
       commits: [
         {
-          id: 'abc123456789',
-          message: 'Add new feature',
+          id: 'ffac537e6cbbf934b08745a378932722df287a53',
+          message: 'Update README.md',
           author: {
-            name: 'Developer',
-            email: 'dev@example.com'
+            name: 'octocat',
+            email: 'octocat@github.com'
           }
         }
       ]
     }
   })
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([])
-  const [yamlValidator] = useState(() => new YAMLValidator())
+  const [showExamples, setShowExamples] = useState(false)
+  const [selectedExample, setSelectedExample] = useState<string | undefined>()
 
   // Load state from URL fragment on component mount
   useEffect(() => {
@@ -119,7 +73,6 @@ function App() {
     if (hash) {
       try {
         const state = JSON.parse(atob(hash))
-        if (state.workflow) setWorkflowYaml(state.workflow)
         if (state.variables) setVariables(state.variables)
         if (state.github) setGitHub(state.github)
         // Clear the hash after loading
@@ -133,20 +86,18 @@ function App() {
   // Auto-save to localStorage (excluding secrets)
   useEffect(() => {
     const state = {
-      workflow: workflowYaml,
       variables: variables.filter(v => v.type !== 'secrets'),
       github
     }
-    localStorage.setItem('github-actions-playground', JSON.stringify(state))
-  }, [workflowYaml, variables, github])
+    localStorage.setItem('github-expressions-evaluator', JSON.stringify(state))
+  }, [variables, github])
 
   // Load from localStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem('github-actions-playground')
+    const saved = localStorage.getItem('github-expressions-evaluator')
     if (saved && !window.location.hash) {
       try {
         const state = JSON.parse(saved)
-        if (state.workflow) setWorkflowYaml(state.workflow)
         if (state.variables) setVariables(state.variables)
         if (state.github) setGitHub(state.github)
       } catch (error) {
@@ -154,27 +105,6 @@ function App() {
       }
     }
   }, [])
-
-  // Validate YAML whenever it changes
-  useEffect(() => {
-    const errors = yamlValidator.validate(workflowYaml)
-    setValidationErrors(errors)
-  }, [workflowYaml, yamlValidator])
-
-  const handleValidationErrors = useCallback((markers: any[]) => {
-    // Monaco editor validation errors will be merged with YAML validation errors
-    const monacoErrors: ValidationError[] = markers.map(marker => ({
-      message: marker.message,
-      line: marker.startLineNumber,
-      column: marker.startColumn,
-      severity: marker.severity === 8 ? 'error' : marker.severity === 4 ? 'warning' : 'info',
-      source: 'schema'
-    }))
-
-    // Merge with existing YAML validation errors
-    const yamlErrors = yamlValidator.validate(workflowYaml)
-    setValidationErrors([...yamlErrors, ...monacoErrors])
-  }, [workflowYaml, yamlValidator])
 
   const buildEvaluationContext = (): EvaluationContext => {
     const context: EvaluationContext = {
@@ -230,50 +160,58 @@ function App() {
     return evaluator.evaluateExpression(expression)
   }
 
-  const handleImport = (state: {
-    workflow: string
-    variables: ContextVariable[]
-    github: Partial<GitHubContext>
-  }) => {
-    setWorkflowYaml(state.workflow)
-    setVariables(state.variables)
-    setGitHub(state.github)
+  const handleShareLink = () => {
+    const state = {
+      variables: variables.filter(v => v.type !== 'secrets'),
+      github
+    }
+    const encoded = btoa(JSON.stringify(state))
+    const url = `${window.location.origin}${window.location.pathname}#${encoded}`
+    window.open(url, '_blank')
   }
 
   return (
-    <div className="playground-container">
-      <div className="editor-panel">
-        <div className="panel-header">
-          Workflow Editor
-          <ImportExport
-            workflowYaml={workflowYaml}
-            variables={variables}
-            github={github}
-            onImport={handleImport}
-            onWorkflowChange={setWorkflowYaml}
-          />
+    <div className="evaluator-container">
+      <header className="app-header">
+        <h1>GitHub Actions Expression Evaluator</h1>
+        <div className="header-actions">
+          <button
+            onClick={() => setShowExamples(!showExamples)}
+            className="examples-toggle"
+          >
+            {showExamples ? '✕ Close' : '📚 Examples'}
+          </button>
+          <button onClick={handleShareLink} className="share-button">
+            🔗 Share
+          </button>
         </div>
-        <Editor
-          value={workflowYaml}
-          onChange={setWorkflowYaml}
-          onValidationErrors={handleValidationErrors}
-        />
-      </div>
+      </header>
 
-      <div className="right-panel">
-        <div className="context-panel">
+      <QuickContextSelector
+        github={github}
+        onGitHubChange={setGitHub}
+      />
+
+      <div className="main-content">
+        <div className="left-panel">
+          <ExpressionInput
+            onEvaluate={handleEvaluateExpression}
+            initialExpression={selectedExample}
+          />
+          {showExamples && (
+            <ExpressionExamples onSelectExample={(expr) => {
+              setSelectedExample(expr)
+              setShowExamples(false)
+            }} />
+          )}
+        </div>
+
+        <div className="right-panel">
           <ContextBuilder
             variables={variables}
             onVariablesChange={setVariables}
             github={github}
             onGitHubChange={setGitHub}
-          />
-        </div>
-
-        <div className="results-panel">
-          <ResultsPanel
-            validationErrors={validationErrors}
-            onEvaluateExpression={handleEvaluateExpression}
           />
         </div>
       </div>

@@ -20,13 +20,14 @@ export class ExpressionEvaluator {
       }
 
       const result = this.parseAndEvaluate(cleanExpression)
-      return result
+      return { ...result, success: true }
     } catch (error) {
       return {
         value: null,
         type: 'error',
         contextHits: [],
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
+        success: false
       }
     }
   }
@@ -42,7 +43,7 @@ export class ExpressionEvaluator {
         value,
         type: 'boolean',
         contextHits: [`functions.${funcName}`]
-      }
+      } as ExpressionResult
     }
 
     // Handle contains() function
@@ -119,7 +120,9 @@ export class ExpressionEvaluator {
     if (expression.startsWith('!') && !expression.includes('!=')) {
       const innerExpression = expression.slice(1).trim()
       const innerResult = this.parseAndEvaluate(innerExpression)
-      contextHits.push(...innerResult.contextHits)
+      if (innerResult.contextHits) {
+        contextHits.push(...innerResult.contextHits)
+      }
       return {
         value: !this.isTruthy(innerResult.value),
         type: 'boolean',
@@ -212,7 +215,8 @@ export class ExpressionEvaluator {
     if (leftResult.error) return leftResult
     if (rightResult.error) return rightResult
 
-    contextHits.push(...leftResult.contextHits, ...rightResult.contextHits)
+    if (leftResult.contextHits) contextHits.push(...leftResult.contextHits)
+    if (rightResult.contextHits) contextHits.push(...rightResult.contextHits)
 
     let result: boolean
     const leftVal = leftResult.value
@@ -265,7 +269,7 @@ export class ExpressionEvaluator {
     const leftResult = this.parseAndEvaluate(leftPart)
     if (leftResult.error) return leftResult
 
-    contextHits.push(...leftResult.contextHits)
+    if (leftResult.contextHits) contextHits.push(...leftResult.contextHits)
 
     if (operator === '&&') {
       if (!this.isTruthy(leftResult.value)) {
@@ -288,7 +292,7 @@ export class ExpressionEvaluator {
     const rightResult = this.parseAndEvaluate(rightPart)
     if (rightResult.error) return rightResult
 
-    contextHits.push(...rightResult.contextHits)
+    if (rightResult.contextHits) contextHits.push(...rightResult.contextHits)
 
     // For &&: we reach here only if left was truthy, so result is based on right
     // For ||: we reach here only if left was falsy, so result is based on right
@@ -310,7 +314,8 @@ export class ExpressionEvaluator {
     const searchInResult = this.parseAndEvaluate(match[1].trim())
     const searchForResult = this.parseAndEvaluate(match[2].trim())
 
-    contextHits.push(...searchInResult.contextHits, ...searchForResult.contextHits)
+    if (searchInResult.contextHits) contextHits.push(...searchInResult.contextHits)
+    if (searchForResult.contextHits) contextHits.push(...searchForResult.contextHits)
 
     const searchIn = String(searchInResult.value)
     const searchFor = String(searchForResult.value)
@@ -332,7 +337,8 @@ export class ExpressionEvaluator {
     const stringResult = this.parseAndEvaluate(match[2].trim())
     const searchResult = this.parseAndEvaluate(match[3].trim())
 
-    contextHits.push(...stringResult.contextHits, ...searchResult.contextHits)
+    if (stringResult.contextHits) contextHits.push(...stringResult.contextHits)
+    if (searchResult.contextHits) contextHits.push(...searchResult.contextHits)
 
     const str = String(stringResult.value)
     const search = String(searchResult.value)
@@ -376,12 +382,12 @@ export class ExpressionEvaluator {
 
     const formatResult = this.parseAndEvaluate(args[0])
     let formatString = String(formatResult.value)
-    contextHits.push(...formatResult.contextHits)
+    if (formatResult.contextHits) contextHits.push(...formatResult.contextHits)
 
     // Replace {0}, {1}, etc. with corresponding arguments
     for (let i = 1; i < args.length; i++) {
       const argResult = this.parseAndEvaluate(args[i])
-      contextHits.push(...argResult.contextHits)
+      if (argResult.contextHits) contextHits.push(...argResult.contextHits)
       formatString = formatString.replace(new RegExp(`\\{${i - 1}\\}`, 'g'), String(argResult.value))
     }
 
@@ -399,7 +405,7 @@ export class ExpressionEvaluator {
     }
 
     const argResult = this.parseAndEvaluate(match[1].trim())
-    contextHits.push(...argResult.contextHits)
+    if (argResult.contextHits) contextHits.push(...argResult.contextHits)
 
     return {
       value: JSON.stringify(argResult.value),
@@ -415,7 +421,7 @@ export class ExpressionEvaluator {
     }
 
     const argResult = this.parseAndEvaluate(match[1].trim())
-    contextHits.push(...argResult.contextHits)
+    if (argResult.contextHits) contextHits.push(...argResult.contextHits)
 
     try {
       const parsed = JSON.parse(String(argResult.value))
@@ -550,7 +556,7 @@ export class ExpressionEvaluator {
     const functionResult = this.parseAndEvaluate(functionPart)
     if (functionResult.error) return functionResult
 
-    contextHits.push(...functionResult.contextHits)
+    if (functionResult.contextHits) contextHits.push(...functionResult.contextHits)
 
     // Now evaluate property access on the result
     const propertyPath = propertyPart.split('.')

@@ -13,88 +13,62 @@ interface ExpressionExamplesProps {
 
 export const ExpressionExamples: React.FC<ExpressionExamplesProps> = ({ onSelectExample }) => {
   const examples: ExpressionExample[] = [
-    // Basic Property Access
+    // Common expressions from PRD
     {
-      category: 'Property Access',
-      title: 'GitHub Reference',
-      expression: 'github.ref',
-      description: 'Get the current branch or tag reference'
-    },
-    {
-      category: 'Property Access',
-      title: 'Environment Variable',
-      expression: 'env.NODE_VERSION',
-      description: 'Access an environment variable'
-    },
-    {
-      category: 'Property Access',
-      title: 'Configuration Variable',
-      expression: 'vars.BRANCH_NAME',
-      description: 'Access a repository configuration variable'
-    },
-    {
-      category: 'Property Access',
-      title: 'Secret Value',
-      expression: 'secrets.DATABASE_URL',
-      description: 'Access a secret (shown masked in real workflows)'
-    },
-
-    // Comparisons
-    {
-      category: 'Comparisons',
-      title: 'Branch Check',
+      category: 'Branch & Event',
+      title: 'Main Branch Check',
       expression: "github.ref == 'refs/heads/main'",
       description: 'Check if running on main branch'
     },
     {
-      category: 'Comparisons',
-      title: 'Event Type Check',
-      expression: "github.event_name == 'push'",
-      description: 'Check if triggered by push event'
+      category: 'Branch & Event',
+      title: 'Pull Request Event',
+      expression: "github.event_name == 'pull_request'",
+      description: 'Check if triggered by pull request'
     },
     {
-      category: 'Comparisons',
-      title: 'Numeric Comparison',
-      expression: 'github.run_number > 10',
-      description: 'Check if run number is greater than 10'
+      category: 'Branch & Event',
+      title: 'Feature Branch',
+      expression: "contains(github.ref, 'feature/')",
+      description: 'Check if on a feature branch'
     },
     {
-      category: 'Comparisons',
-      title: 'Environment Check',
-      expression: "env.APP_ENV != 'development'",
-      description: 'Check if not in development environment'
+      category: 'Branch & Event',
+      title: 'Tag Check',
+      expression: "startsWith(github.ref, 'refs/tags/')",
+      description: 'Check if triggered by a tag'
     },
 
-    // Logical Operations
+    // Variables & Secrets
     {
-      category: 'Logical Operations',
-      title: 'AND Condition',
-      expression: "github.ref == 'refs/heads/main' && env.APP_ENV == 'production'",
-      description: 'Deploy only on main branch in production'
+      category: 'Variables & Secrets',
+      title: 'Environment Variable with Default',
+      expression: "env.NODE_VERSION || '16'",
+      description: 'Get NODE_VERSION or default to 16'
     },
     {
-      category: 'Logical Operations',
-      title: 'OR Condition',
-      expression: "github.event_name == 'push' || github.event_name == 'workflow_dispatch'",
-      description: 'Run on push or manual trigger'
+      category: 'Variables & Secrets',
+      title: 'Secret Exists',
+      expression: "secrets.NPM_TOKEN != ''",
+      description: 'Check if secret is set'
     },
     {
-      category: 'Logical Operations',
-      title: 'Negation',
-      expression: "!cancelled()",
-      description: 'Check if workflow was not cancelled'
+      category: 'Variables & Secrets',
+      title: 'Format with Variables',
+      expression: "format('v{0}.{1}', vars.MAJOR, vars.MINOR)",
+      description: 'Build version string from config variables'
     },
 
     // String Functions
     {
       category: 'String Functions',
       title: 'Contains Check',
-      expression: "contains(github.repository, 'actions')",
-      description: 'Check if repository name contains "actions"'
+      expression: "contains(github.repository, 'octocat')",
+      description: 'Check if repository contains string'
     },
     {
       category: 'String Functions',
-      title: 'Starts With',
+      title: 'Starts With Branch',
       expression: "startsWith(github.ref, 'refs/heads/')",
       description: 'Check if reference is a branch'
     },
@@ -102,21 +76,27 @@ export const ExpressionExamples: React.FC<ExpressionExamplesProps> = ({ onSelect
       category: 'String Functions',
       title: 'Ends With',
       expression: "endsWith(github.ref, '/main')",
-      description: 'Check if reference ends with "/main"'
+      description: 'Check if ref ends with /main'
     },
 
-    // Format Function
+    // JSON Functions
     {
-      category: 'Format Function',
-      title: 'String Formatting',
-      expression: "format('Deploy to {0} environment', env.APP_ENV)",
-      description: 'Create formatted string with variables'
+      category: 'JSON Functions',
+      title: 'GitHub Context to JSON',
+      expression: 'toJSON(github)',
+      description: 'Convert entire github context to JSON'
     },
     {
-      category: 'Format Function',
-      title: 'Multiple Variables',
-      expression: "format('Build {0} on {1}', github.run_number, github.ref)",
-      description: 'Format string with multiple placeholders'
+      category: 'JSON Functions',
+      title: 'Event Payload to JSON',
+      expression: 'toJSON(github.event)',
+      description: 'View full event payload as JSON'
+    },
+    {
+      category: 'JSON Functions',
+      title: 'Parse JSON String',
+      expression: "fromJSON('{\"environment\": \"production\"}')",
+      description: 'Parse JSON string to object'
     },
 
     // Status Functions
@@ -124,59 +104,51 @@ export const ExpressionExamples: React.FC<ExpressionExamplesProps> = ({ onSelect
       category: 'Status Functions',
       title: 'Success Check',
       expression: 'success()',
-      description: 'Check if all previous steps succeeded'
-    },
-    {
-      category: 'Status Functions',
-      title: 'Always Run',
-      expression: 'always()',
-      description: 'Always execute (for cleanup steps)'
+      description: 'Returns true if all previous steps succeeded (assumes success in evaluator)'
     },
     {
       category: 'Status Functions',
       title: 'Failure Check',
       expression: 'failure()',
-      description: 'Check if any previous step failed'
+      description: 'Returns true if any previous step failed'
     },
     {
       category: 'Status Functions',
-      title: 'Success with Condition',
-      expression: "success() && env.DEPLOY == 'true'",
-      description: 'Deploy only on success and when enabled'
+      title: 'Always Run',
+      expression: 'always()',
+      description: 'Always returns true (for cleanup steps)'
+    },
+    {
+      category: 'Status Functions',
+      title: 'Cancelled Check',
+      expression: 'cancelled()',
+      description: 'Returns true if workflow was cancelled'
     },
 
-    // JSON Functions
-    {
-      category: 'JSON Functions',
-      title: 'To JSON',
-      expression: 'toJSON(github.event)',
-      description: 'Convert object to JSON string'
-    },
-    {
-      category: 'JSON Functions',
-      title: 'From JSON',
-      expression: "fromJSON('{\"key\": \"value\"}')",
-      description: 'Parse JSON string to object'
-    },
-
-    // Complex Examples
+    // Complex Expressions
     {
       category: 'Complex Examples',
-      title: 'Conditional Deployment',
-      expression: "github.ref == 'refs/heads/main' && success() && !cancelled()",
-      description: 'Deploy on main branch if successful and not cancelled'
+      title: 'Production Deploy',
+      expression: "github.ref == 'refs/heads/main' && env.APP_ENV == 'production'",
+      description: 'Deploy only on main branch in production'
     },
     {
       category: 'Complex Examples',
-      title: 'Environment-based Logic',
-      expression: "contains(fromJSON(vars.DEPLOY_ENVIRONMENTS), env.ENVIRONMENT)",
-      description: 'Check if current environment is in deploy list'
+      title: 'Multiple Events',
+      expression: "github.event_name == 'push' || github.event_name == 'workflow_dispatch'",
+      description: 'Run on push or manual trigger'
     },
     {
       category: 'Complex Examples',
-      title: 'Dynamic Message',
-      expression: "format('🚀 Deploying {0} to {1} - Run #{2}', github.repository, env.TARGET_ENV, github.run_number)",
-      description: 'Create dynamic deployment message'
+      title: 'Conditional Message',
+      expression: "format('Deploying {0} to {1}', github.sha, env.ENVIRONMENT || 'staging')",
+      description: 'Build deployment message with fallback'
+    },
+    {
+      category: 'Complex Examples',
+      title: 'Tag Version Build',
+      expression: "format('tag-{0}', vars.BUILD)",
+      description: 'Create tag name from variable'
     }
   ]
 

@@ -101,7 +101,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               )}
             </div>
 
-            {result.contextHits.length > 0 && (
+            {result.contextHits && result.contextHits.length > 0 && (
               <div className="context-hits">
                 <h4>Context Hits</h4>
                 <ul>
