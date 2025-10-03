@@ -1,20 +1,16 @@
 import React, { useState } from 'react'
-import { ContextVariable, GitHubContext } from '../types'
+import { ContextVariable } from '../types'
 
 interface ContextBuilderProps {
   variables: ContextVariable[]
   onVariablesChange: (variables: ContextVariable[]) => void
-  github: Partial<GitHubContext>
-  onGitHubChange: (github: Partial<GitHubContext>) => void
 }
 
-type TabType = 'env' | 'vars' | 'secrets' | 'inputs' | 'github' | 'matrix' | 'needs'
+type TabType = 'env' | 'vars' | 'secrets' | 'inputs'
 
 export const ContextBuilder: React.FC<ContextBuilderProps> = ({
   variables,
-  onVariablesChange,
-  github,
-  onGitHubChange
+  onVariablesChange
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('env')
   const [currentScope, setCurrentScope] = useState<'workflow' | 'job' | 'step'>('workflow')
@@ -100,64 +96,11 @@ export const ContextBuilder: React.FC<ContextBuilderProps> = ({
     )
   }
 
-  const renderGitHubContext = () => {
-    return (
-      <div className="github-context">
-        <div className="context-field">
-          <label>Repository:</label>
-          <input
-            type="text"
-            placeholder="owner/repo"
-            value={github.repository || ''}
-            onChange={(e) => onGitHubChange({ ...github, repository: e.target.value })}
-          />
-        </div>
-        <div className="context-field">
-          <label>Ref:</label>
-          <input
-            type="text"
-            placeholder="refs/heads/main"
-            value={github.ref || ''}
-            onChange={(e) => onGitHubChange({ ...github, ref: e.target.value })}
-          />
-        </div>
-        <div className="context-field">
-          <label>SHA:</label>
-          <input
-            type="text"
-            placeholder="commit sha"
-            value={github.sha || ''}
-            onChange={(e) => onGitHubChange({ ...github, sha: e.target.value })}
-          />
-        </div>
-        <div className="context-field">
-          <label>Event Payload (JSON):</label>
-          <textarea
-            placeholder='{"ref": "refs/heads/main"}'
-            value={JSON.stringify(github.event || {}, null, 2)}
-            onChange={(e) => {
-              try {
-                const event = JSON.parse(e.target.value)
-                onGitHubChange({ ...github, event })
-              } catch {
-                // Invalid JSON, ignore
-              }
-            }}
-            rows={6}
-          />
-        </div>
-      </div>
-    )
-  }
-
   const tabs: { key: TabType; label: string }[] = [
     { key: 'env', label: 'Environment' },
     { key: 'vars', label: 'Variables' },
     { key: 'secrets', label: 'Secrets' },
-    { key: 'inputs', label: 'Inputs' },
-    { key: 'github', label: 'GitHub' },
-    { key: 'matrix', label: 'Matrix' },
-    { key: 'needs', label: 'Needs' }
+    { key: 'inputs', label: 'Inputs' }
   ]
 
   return (
@@ -177,14 +120,7 @@ export const ContextBuilder: React.FC<ContextBuilderProps> = ({
       </div>
 
       <div className="tab-content">
-        {activeTab === 'github' && renderGitHubContext()}
-        {(activeTab === 'env' || activeTab === 'vars' || activeTab === 'secrets' || activeTab === 'inputs') &&
-          renderVariableTable(activeTab)}
-        {(activeTab === 'matrix' || activeTab === 'needs') && (
-          <div className="coming-soon">
-            {activeTab} context builder coming soon...
-          </div>
-        )}
+        {renderVariableTable(activeTab)}
       </div>
     </div>
   )

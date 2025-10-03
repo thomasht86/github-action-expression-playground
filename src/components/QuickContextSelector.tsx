@@ -171,8 +171,11 @@ const eventPresets: Record<EventPreset, Partial<GitHubContext>> = {
 }
 
 export function QuickContextSelector({ github, onGitHubChange }: QuickContextSelectorProps) {
+  const [repository, setRepository] = useState(github.repository || 'octocat/hello-world')
+  const [sha, setSha] = useState(github.sha || 'ffac537e6cbbf934b08745a378932722df287a53')
   const [branch, setBranch] = useState(github.ref_name || 'main')
   const [eventPreset, setEventPreset] = useState<EventPreset>('push')
+  const [showNotification, setShowNotification] = useState(false)
 
   const handleBranchChange = (newBranch: string) => {
     setBranch(newBranch)
@@ -189,6 +192,9 @@ export function QuickContextSelector({ github, onGitHubChange }: QuickContextSel
     let ref = `refs/heads/${branch}`
     let ref_name = branch
     let ref_type = 'branch'
+
+    // Extract owner from repository
+    const [owner] = repository.split('/')
 
     if (eventPreset === 'pull_request') {
       ref = `refs/pull/123/merge`
@@ -223,14 +229,45 @@ export function QuickContextSelector({ github, onGitHubChange }: QuickContextSel
     onGitHubChange({
       ...github,
       ...presetContext,
+      repository,
+      repository_owner: owner,
+      sha,
       ref,
       ref_name,
       ref_type
     })
+
+    // Show notification
+    setShowNotification(true)
+    setTimeout(() => setShowNotification(false), 2000)
   }
 
   return (
     <div className="quick-context-selector">
+      <div className="selector-group">
+        <label htmlFor="repo-input">Repository:</label>
+        <input
+          id="repo-input"
+          type="text"
+          value={repository}
+          onChange={(e) => setRepository(e.target.value)}
+          placeholder="owner/repo"
+          className="repo-input"
+        />
+      </div>
+
+      <div className="selector-group">
+        <label htmlFor="sha-input">SHA:</label>
+        <input
+          id="sha-input"
+          type="text"
+          value={sha}
+          onChange={(e) => setSha(e.target.value)}
+          placeholder="commit sha"
+          className="sha-input"
+        />
+      </div>
+
       <div className="selector-group">
         <label htmlFor="branch-input">Branch:</label>
         <input
@@ -269,6 +306,12 @@ export function QuickContextSelector({ github, onGitHubChange }: QuickContextSel
       <button onClick={handleApply} className="apply-button">
         Apply
       </button>
+
+      {showNotification && (
+        <div className="apply-notification">
+          ✓ Context applied
+        </div>
+      )}
     </div>
   )
 }

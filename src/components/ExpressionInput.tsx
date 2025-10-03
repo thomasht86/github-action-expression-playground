@@ -41,6 +41,7 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
   const [expression, setExpression] = useState("github.ref == 'refs/heads/main'")
   const [result, setResult] = useState<ExpressionResult | null>(null)
   const [isEvaluating, setIsEvaluating] = useState(false)
+  const [showCopyNotification, setShowCopyNotification] = useState(false)
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
   const monacoRef = useRef<typeof monaco | null>(null)
 
@@ -73,6 +74,8 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
 
       try {
         await navigator.clipboard.writeText(textToCopy)
+        setShowCopyNotification(true)
+        setTimeout(() => setShowCopyNotification(false), 2000)
       } catch (error) {
         console.error('Failed to copy to clipboard:', error)
       }
@@ -276,7 +279,7 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
         </div>
         <div className="expression-monaco">
           <MonacoEditor
-            height="80px"
+            height="40px"
             language="github-expression"
             value={expression}
             onChange={(value) => value !== undefined && setExpression(value)}
@@ -291,12 +294,12 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
               lineNumbersMinChars: 0,
               glyphMargin: false,
               scrollBeyondLastLine: false,
-              wordWrap: 'on',
+              wordWrap: 'off',
               wrappingIndent: 'none',
               automaticLayout: true,
               scrollbar: {
                 vertical: 'hidden',
-                horizontal: 'hidden',
+                horizontal: 'auto',
               },
               overviewRulerLanes: 0,
               hideCursorInOverviewRuler: true,
@@ -315,15 +318,6 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
       <div className="expression-result-section">
         <div className="section-header">
           <span className="section-label">Result</span>
-          {result && !result.error && (
-            <button
-              onClick={handleCopy}
-              className="copy-button"
-              title="Copy result to clipboard"
-            >
-              📋 Copy
-            </button>
-          )}
         </div>
 
         {isEvaluating ? (
@@ -338,8 +332,24 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
                   </span>
                   <span className="result-status success">✓ Success</span>
                 </div>
-                <div className="result-value">
-                  <pre>{formatValue(result.value)}</pre>
+                <div className="result-value-wrapper">
+                  <div className="result-value">
+                    <pre>{formatValue(result.value)}</pre>
+                  </div>
+                  <div className="copy-button-wrapper">
+                    <button
+                      onClick={handleCopy}
+                      className="copy-button copy-button-inline"
+                      title="Copy result to clipboard"
+                    >
+                      ⎘
+                    </button>
+                    {showCopyNotification && (
+                      <div className="copy-notification">
+                        ✓ Copied
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             ) : (

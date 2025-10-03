@@ -203,8 +203,6 @@ function App() {
           <ContextBuilder
             variables={variables}
             onVariablesChange={setVariables}
-            github={github}
-            onGitHubChange={setGitHub}
           />
         </div>
       </div>
