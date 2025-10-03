@@ -239,7 +239,7 @@ export function QuickContextSelector({ github, onGitHubChange }: QuickContextSel
 
     // Show notification
     setShowNotification(true)
-    setTimeout(() => setShowNotification(false), 2000)
+    setTimeout(() => setShowNotification(false), 1500)
   }
 
   return (
@@ -257,6 +257,27 @@ export function QuickContextSelector({ github, onGitHubChange }: QuickContextSel
       </div>
 
       <div className="selector-group">
+        <label htmlFor="branch-select">Branch:</label>
+        <select
+          id="branch-select"
+          value={branch}
+          onChange={(e) => handleBranchChange(e.target.value)}
+          className="branch-input"
+        >
+          <option value="main">main</option>
+          <option value="develop">develop</option>
+          <option value="staging">staging</option>
+          <option value="feature/new-feature">feature/new-feature</option>
+          <option value="feature/user-auth">feature/user-auth</option>
+          <option value="feature/api-integration">feature/api-integration</option>
+          <option value="bugfix/fix-login">bugfix/fix-login</option>
+          <option value="hotfix/critical-fix">hotfix/critical-fix</option>
+          <option value="release/v1.0">release/v1.0</option>
+          <option value="release/v2.0">release/v2.0</option>
+        </select>
+      </div>
+
+      <div className="selector-group">
         <label htmlFor="sha-input">SHA:</label>
         <input
           id="sha-input"
@@ -266,26 +287,6 @@ export function QuickContextSelector({ github, onGitHubChange }: QuickContextSel
           placeholder="commit sha"
           className="sha-input"
         />
-      </div>
-
-      <div className="selector-group">
-        <label htmlFor="branch-input">Branch:</label>
-        <input
-          id="branch-input"
-          type="text"
-          value={branch}
-          onChange={(e) => handleBranchChange(e.target.value)}
-          placeholder="main"
-          className="branch-input"
-          list="branch-suggestions"
-        />
-        <datalist id="branch-suggestions">
-          <option value="main" />
-          <option value="develop" />
-          <option value="feature/new-feature" />
-          <option value="release/v1.0" />
-          <option value="hotfix/critical-fix" />
-        </datalist>
       </div>
 
       <div className="selector-group">

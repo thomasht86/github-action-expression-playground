@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Editor as MonacoEditor } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
+import { ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
 import { ExpressionResult } from '../types'
 
 interface ExpressionExample {
@@ -254,8 +255,14 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
   }
 
   return (
-    <div className="expression-input-container">
-      <div className="expression-input-section">
+    <>
+      {showCopyNotification && (
+        <div className="editor-copy-notification">
+          ✓ Copied
+        </div>
+      )}
+      <div className="expression-input-container">
+        <div className="expression-input-section">
         <div className="expression-header">
           <label htmlFor="expression-input" className="section-label">
             Expression
@@ -278,6 +285,13 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
           </select>
         </div>
         <div className="expression-monaco">
+          <button
+            onClick={handleCopy}
+            className="editor-copy-button"
+            title="Copy result to clipboard"
+          >
+            <ClipboardDocumentListIcon className="icon" />
+          </button>
           <MonacoEditor
             height="40px"
             language="github-expression"
@@ -336,20 +350,6 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
                   <div className="result-value">
                     <pre>{formatValue(result.value)}</pre>
                   </div>
-                  <div className="copy-button-wrapper">
-                    <button
-                      onClick={handleCopy}
-                      className="copy-button copy-button-inline"
-                      title="Copy result to clipboard"
-                    >
-                      ⎘
-                    </button>
-                    {showCopyNotification && (
-                      <div className="copy-notification">
-                        ✓ Copied
-                      </div>
-                    )}
-                  </div>
                 </div>
               </>
             ) : (
@@ -366,5 +366,6 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
         ) : null}
       </div>
     </div>
+    </>
   )
 }

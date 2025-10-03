@@ -21,11 +21,21 @@
   font-size: 18px;
   font-weight: 500;
   color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .header-actions {
   display: flex;
   gap: 12px;
+  align-items: center;
+  position: relative;
 }
 
 .examples-toggle,
@@ -38,11 +48,36 @@
   cursor: pointer;
   font-size: 13px;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .examples-toggle:hover,
 .share-button:hover {
   background-color: #1177bb;
+}
+
+.share-button .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.share-notification {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #4ec9b0;
+  color: #1e1e1e;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  animation: slideUpFade 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
 }
 
 /* Quick Context Selector */
@@ -111,28 +146,29 @@
 }
 
 .apply-notification {
-  position: absolute;
-  right: 24px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
   background-color: #4ec9b0;
   color: #1e1e1e;
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 4px;
   font-size: 13px;
   font-weight: 500;
-  animation: slideInFade 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: slideUpFade 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
 }
 
-@keyframes slideInFade {
+@keyframes slideUpFade {
   from {
     opacity: 0;
-    transform: translateY(-50%) translateX(10px);
+    transform: translateX(-50%) translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(-50%) translateX(0);
+    transform: translateX(-50%) translateY(0);
   }
 }
 
@@ -185,10 +221,56 @@
   overflow: visible;
   position: relative;
   z-index: 100;
+  padding: 8px 8px 6px 8px;
+  min-height: 56px;
 }
 
 .expression-monaco:focus-within {
   border-color: #007acc;
+}
+
+.editor-copy-button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 200;
+  background-color: rgba(14, 99, 156, 0.8);
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editor-copy-button:hover {
+  background-color: rgba(17, 119, 187, 0.9);
+}
+
+.editor-copy-button .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.editor-copy-notification {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #4ec9b0;
+  color: #1e1e1e;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  animation: slideUpFade 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
 }
 
 /* Monaco suggest widget z-index fix */
@@ -227,32 +309,6 @@
   background-color: #1177bb;
 }
 
-.copy-notification {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 4px;
-  background-color: #4ec9b0;
-  color: #1e1e1e;
-  padding: 4px 8px;
-  border-radius: 3px;
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-  animation: slideDownFade 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-@keyframes slideDownFade {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 .result-loading {
   color: #888888;
@@ -314,6 +370,8 @@
 
 .result-value-wrapper {
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .result-value {
@@ -326,13 +384,15 @@
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  padding-right: 40px;
 }
 
-.copy-button-inline {
+.copy-button-wrapper {
   position: absolute;
   top: 0;
   right: 0;
+}
+
+.copy-button-inline {
   background-color: rgba(14, 99, 156, 0.8);
   padding: 4px 8px;
   font-size: 14px;

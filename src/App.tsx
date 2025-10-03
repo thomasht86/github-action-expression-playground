@@ -4,6 +4,8 @@ import { ContextBuilder } from './components/ContextBuilder'
 import { QuickContextSelector } from './components/QuickContextSelector'
 import { ContextVariable, GitHubContext, ExpressionResult, EvaluationContext } from './types'
 import { ExpressionEvaluator } from './utils/expressionEvaluator'
+import { ShareIcon } from '@heroicons/react/24/outline'
+import { GitBranch } from 'lucide-react'
 import './App.css'
 
 function App() {
@@ -17,6 +19,7 @@ function App() {
     { name: 'BUILD', value: 'prod', type: 'vars', scope: 'workflow' },
     { name: 'NPM_TOKEN', value: 'npm_secret_token_123', type: 'secrets', scope: 'workflow' },
   ])
+  const [showShareNotification, setShowShareNotification] = useState(false)
   const [github, setGitHub] = useState<Partial<GitHubContext>>({
     repository: 'octocat/hello-world',
     repository_owner: 'octocat',
@@ -166,24 +169,40 @@ function App() {
     return evaluator.evaluateExpression(expression)
   }
 
-  const handleShareLink = () => {
+  const handleShareLink = async () => {
     const state = {
       variables: variables.filter(v => v.type !== 'secrets'),
       github
     }
     const encoded = btoa(JSON.stringify(state))
     const url = `${window.location.origin}${window.location.pathname}#${encoded}`
-    window.open(url, '_blank')
+
+    try {
+      await navigator.clipboard.writeText(url)
+      setShowShareNotification(true)
+      setTimeout(() => setShowShareNotification(false), 1500)
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+    }
   }
 
   return (
     <div className="evaluator-container">
       <header className="app-header">
-        <h1>GitHub Actions Expression Evaluator</h1>
+        <h1>
+          <GitBranch className="header-icon" />
+          GitHub Actions Expression Evaluator
+        </h1>
         <div className="header-actions">
           <button onClick={handleShareLink} className="share-button">
-            🔗 Share
+            <ShareIcon className="icon" />
+            Share
           </button>
+          {showShareNotification && (
+            <div className="share-notification">
+              ✓ Link copied
+            </div>
+          )}
         </div>
       </header>
 
