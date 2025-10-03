@@ -19,23 +19,24 @@ const EXAMPLES: ExpressionExample[] = [
   { category: 'Branch & Event', title: 'Pull Request Event', expression: "github.event_name == 'pull_request'" },
   { category: 'Branch & Event', title: 'Feature Branch', expression: "contains(github.ref, 'feature/')" },
   { category: 'Branch & Event', title: 'Tag Check', expression: "startsWith(github.ref, 'refs/tags/')" },
+  { category: 'Variables & Secrets', title: 'Environment Variable', expression: "env.NODE_VERSION" },
   { category: 'Variables & Secrets', title: 'Environment Variable with Default', expression: "env.NODE_VERSION || '16'" },
   { category: 'Variables & Secrets', title: 'Secret Exists', expression: "secrets.NPM_TOKEN != ''" },
-  { category: 'Variables & Secrets', title: 'Format with Variables', expression: "format('v{0}.{1}', vars.MAJOR, vars.MINOR)" },
+  { category: 'Variables & Secrets', title: 'Configuration Variable', expression: "vars.MAJOR" },
   { category: 'String Functions', title: 'Contains Check', expression: "contains(github.repository, 'octocat')" },
   { category: 'String Functions', title: 'Starts With Branch', expression: "startsWith(github.ref, 'refs/heads/')" },
   { category: 'String Functions', title: 'Ends With', expression: "endsWith(github.ref, '/main')" },
+  { category: 'String Functions', title: 'Format SHA', expression: "format('Build {0}', github.sha)" },
   { category: 'JSON Functions', title: 'GitHub Context to JSON', expression: 'toJSON(github)' },
   { category: 'JSON Functions', title: 'Event Payload to JSON', expression: 'toJSON(github.event)' },
-  { category: 'JSON Functions', title: 'Parse JSON String', expression: "fromJSON('{\"environment\": \"production\"}')" },
+  { category: 'JSON Functions', title: 'Parse Event JSON', expression: 'fromJSON(toJSON(github.event))' },
   { category: 'Status Functions', title: 'Success Check', expression: 'success()' },
   { category: 'Status Functions', title: 'Failure Check', expression: 'failure()' },
   { category: 'Status Functions', title: 'Always Run', expression: 'always()' },
   { category: 'Status Functions', title: 'Cancelled Check', expression: 'cancelled()' },
   { category: 'Complex Examples', title: 'Production Deploy', expression: "github.ref == 'refs/heads/main' && env.APP_ENV == 'production'" },
   { category: 'Complex Examples', title: 'Multiple Events', expression: "github.event_name == 'push' || github.event_name == 'workflow_dispatch'" },
-  { category: 'Complex Examples', title: 'Conditional Message', expression: "format('Deploying {0} to {1}', github.sha, env.ENVIRONMENT || 'staging')" },
-  { category: 'Complex Examples', title: 'Tag Version Build', expression: "format('tag-{0}', vars.BUILD)" }
+  { category: 'Complex Examples', title: 'Conditional with Format', expression: "github.ref == 'refs/heads/main' && format('Deploy {0}', github.sha) || 'Skip'" }
 ]
 
 export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
