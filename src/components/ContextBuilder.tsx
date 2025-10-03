@@ -131,19 +131,6 @@ export const ContextBuilder: React.FC<ContextBuilderProps> = ({
           />
         </div>
         <div className="context-field">
-          <label>Event Name:</label>
-          <select
-            value={github.event_name || ''}
-            onChange={(e) => onGitHubChange({ ...github, event_name: e.target.value })}
-          >
-            <option value="">Select event</option>
-            <option value="push">push</option>
-            <option value="pull_request">pull_request</option>
-            <option value="workflow_dispatch">workflow_dispatch</option>
-            <option value="schedule">schedule</option>
-          </select>
-        </div>
-        <div className="context-field">
           <label>Event Payload (JSON):</label>
           <textarea
             placeholder='{"ref": "refs/heads/main"}'

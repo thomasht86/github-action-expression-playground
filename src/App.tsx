@@ -2,13 +2,21 @@ import { useState, useEffect } from 'react'
 import { ExpressionInput } from './components/ExpressionInput'
 import { ContextBuilder } from './components/ContextBuilder'
 import { QuickContextSelector } from './components/QuickContextSelector'
-import { ExpressionExamples } from './components/ExpressionExamples'
 import { ContextVariable, GitHubContext, ExpressionResult, EvaluationContext } from './types'
 import { ExpressionEvaluator } from './utils/expressionEvaluator'
 import './App.css'
 
 function App() {
-  const [variables, setVariables] = useState<ContextVariable[]>([])
+  const [variables, setVariables] = useState<ContextVariable[]>([
+    // Default variables for examples
+    { name: 'NODE_VERSION', value: '16', type: 'env', scope: 'workflow' },
+    { name: 'APP_ENV', value: 'production', type: 'env', scope: 'workflow' },
+    { name: 'ENVIRONMENT', value: 'staging', type: 'env', scope: 'workflow' },
+    { name: 'MAJOR', value: '1', type: 'vars', scope: 'workflow' },
+    { name: 'MINOR', value: '2', type: 'vars', scope: 'workflow' },
+    { name: 'BUILD', value: 'prod', type: 'vars', scope: 'workflow' },
+    { name: 'NPM_TOKEN', value: 'npm_secret_token_123', type: 'secrets', scope: 'workflow' },
+  ])
   const [github, setGitHub] = useState<Partial<GitHubContext>>({
     repository: 'octocat/hello-world',
     repository_owner: 'octocat',
@@ -64,8 +72,6 @@ function App() {
       ]
     }
   })
-  const [showExamples, setShowExamples] = useState(false)
-  const [selectedExample, setSelectedExample] = useState<string | undefined>()
 
   // Load state from URL fragment on component mount
   useEffect(() => {
@@ -175,12 +181,6 @@ function App() {
       <header className="app-header">
         <h1>GitHub Actions Expression Evaluator</h1>
         <div className="header-actions">
-          <button
-            onClick={() => setShowExamples(!showExamples)}
-            className="examples-toggle"
-          >
-            {showExamples ? '✕ Close' : '📚 Examples'}
-          </button>
           <button onClick={handleShareLink} className="share-button">
             🔗 Share
           </button>
@@ -196,14 +196,7 @@ function App() {
         <div className="left-panel">
           <ExpressionInput
             onEvaluate={handleEvaluateExpression}
-            initialExpression={selectedExample}
           />
-          {showExamples && (
-            <ExpressionExamples onSelectExample={(expr) => {
-              setSelectedExample(expr)
-              setShowExamples(false)
-            }} />
-          )}
         </div>
 
         <div className="right-panel">
