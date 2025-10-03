@@ -1,0 +1,583 @@
+import { ExpressionResult, EvaluationContext } from '../types'
+
+export class ExpressionEvaluator {
+  private context: EvaluationContext
+
+  constructor(context: EvaluationContext) {
+    this.context = context
+  }
+
+  async evaluateExpression(expression: string): Promise<ExpressionResult> {
+    try {
+      // Clean the expression - remove ${{ }} wrapper if present
+      const cleanExpression = expression
+        .replace(/^\$\{\{\s*/, '')
+        .replace(/\s*\}\}$/, '')
+        .trim()
+
+      if (!cleanExpression) {
+        throw new Error('Empty expression')
+      }
+
+      const result = this.parseAndEvaluate(cleanExpression)
+      return result
+    } catch (error) {
+      return {
+        value: null,
+        type: 'error',
+        contextHits: [],
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
+  private parseAndEvaluate(expression: string): ExpressionResult {
+    const contextHits: string[] = []
+
+    // Handle function calls like success(), failure(), always()
+    if (expression.match(/^(success|failure|always|cancelled)\(\)$/)) {
+      const funcName = expression.replace('()', '')
+      const value = this.evaluateStatusFunction(funcName)
+      return {
+        value,
+        type: 'boolean',
+        contextHits: [`functions.${funcName}`]
+      }
+    }
+
+    // Handle contains() function
+    if (expression.match(/^contains\(/)) {
+      return this.evaluateContainsFunction(expression, contextHits)
+    }
+
+    // Handle startsWith() and endsWith() functions
+    if (expression.match(/^(startsWith|endsWith)\(/)) {
+      return this.evaluateStringFunction(expression, contextHits)
+    }
+
+    // Handle format() function
+    if (expression.match(/^format\(/)) {
+      return this.evaluateFormatFunction(expression, contextHits)
+    }
+
+    // Handle toJSON() function
+    if (expression.match(/^toJSON\(/)) {
+      return this.evaluateToJSONFunction(expression, contextHits)
+    }
+
+    // Handle fromJSON() function
+    if (expression.match(/^fromJSON\(/)) {
+      return this.evaluateFromJSONFunction(expression, contextHits)
+    }
+
+    // Handle hashFiles() function
+    if (expression.match(/^hashFiles\(/)) {
+      return {
+        value: null,
+        type: 'error',
+        contextHits: [],
+        error: 'hashFiles() requires workspace files (not available in this demo)'
+      }
+    }
+
+    // Handle property access (e.g., github.ref, env.NODE_VERSION)
+    // Only if it doesn't contain operators and isn't a function call
+    if (expression.includes('.') &&
+        !this.isFunction(expression) &&
+        !this.hasOperators(expression)) {
+      return this.evaluatePropertyAccess(expression, contextHits)
+    }
+
+    // Handle chained property access after functions (e.g., fromJSON('{}').key)
+    if (expression.includes('.') &&
+        this.isFunction(expression) &&
+        !this.hasOperators(expression)) {
+      return this.evaluateChainedPropertyAccess(expression, contextHits)
+    }
+
+    // Handle comparison operations (order matters - check >= before >)
+    if (expression.includes('>=')) {
+      return this.evaluateComparison(expression, '>=', contextHits)
+    }
+    if (expression.includes('<=')) {
+      return this.evaluateComparison(expression, '<=', contextHits)
+    }
+    if (expression.includes('>')) {
+      return this.evaluateComparison(expression, '>', contextHits)
+    }
+    if (expression.includes('<')) {
+      return this.evaluateComparison(expression, '<', contextHits)
+    }
+    if (expression.includes('==')) {
+      return this.evaluateComparison(expression, '==', contextHits)
+    }
+    if (expression.includes('!=')) {
+      return this.evaluateComparison(expression, '!=', contextHits)
+    }
+
+    // Handle negation
+    if (expression.startsWith('!') && !expression.includes('!=')) {
+      const innerExpression = expression.slice(1).trim()
+      const innerResult = this.parseAndEvaluate(innerExpression)
+      contextHits.push(...innerResult.contextHits)
+      return {
+        value: !this.isTruthy(innerResult.value),
+        type: 'boolean',
+        contextHits
+      }
+    }
+
+    // Handle logical operations
+    if (expression.includes('&&')) {
+      return this.evaluateLogicalOperation(expression, '&&', contextHits)
+    }
+    if (expression.includes('||')) {
+      return this.evaluateLogicalOperation(expression, '||', contextHits)
+    }
+
+    // Handle string literals
+    if ((expression.startsWith("'") && expression.endsWith("'")) ||
+        (expression.startsWith('"') && expression.endsWith('"'))) {
+      return {
+        value: expression.slice(1, -1),
+        type: 'string',
+        contextHits: []
+      }
+    }
+
+    // Handle boolean literals
+    if (expression === 'true' || expression === 'false') {
+      return {
+        value: expression === 'true',
+        type: 'boolean',
+        contextHits: []
+      }
+    }
+
+    // Handle number literals
+    if (/^-?\d+(\.\d+)?$/.test(expression)) {
+      const value = parseFloat(expression)
+      return {
+        value,
+        type: 'number',
+        contextHits: []
+      }
+    }
+
+    throw new Error(`Unable to parse expression: ${expression}`)
+  }
+
+  private evaluatePropertyAccess(expression: string, contextHits: string[]): ExpressionResult {
+    const parts = expression.split('.')
+    let current: any = this.context
+    let path = ''
+
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i]
+      path = path ? `${path}.${part}` : part
+
+      if (current && typeof current === 'object' && part in current) {
+        current = current[part]
+        contextHits.push(path)
+      } else {
+        throw new Error(`Property '${part}' not found in context '${path}'`)
+      }
+    }
+
+    return {
+      value: current,
+      type: typeof current,
+      contextHits
+    }
+  }
+
+  private evaluateComparison(expression: string, operator: '==' | '!=' | '>' | '<' | '>=' | '<=', contextHits: string[]): ExpressionResult {
+    // Find the operator position to split properly
+    const operatorIndex = expression.indexOf(operator)
+    if (operatorIndex === -1) {
+      throw new Error(`Operator ${operator} not found in expression: ${expression}`)
+    }
+
+    const leftPart = expression.substring(0, operatorIndex).trim()
+    const rightPart = expression.substring(operatorIndex + operator.length).trim()
+
+    if (!leftPart || !rightPart) {
+      throw new Error(`Invalid comparison expression: ${expression}`)
+    }
+
+    const leftResult = this.parseAndEvaluate(leftPart)
+    const rightResult = this.parseAndEvaluate(rightPart)
+
+    // If either side has an error, return error
+    if (leftResult.error) return leftResult
+    if (rightResult.error) return rightResult
+
+    contextHits.push(...leftResult.contextHits, ...rightResult.contextHits)
+
+    let result: boolean
+    const leftVal = leftResult.value
+    const rightVal = rightResult.value
+
+    switch (operator) {
+      case '==':
+        result = leftVal == rightVal
+        break
+      case '!=':
+        result = leftVal != rightVal
+        break
+      case '>':
+        result = Number(leftVal) > Number(rightVal)
+        break
+      case '<':
+        result = Number(leftVal) < Number(rightVal)
+        break
+      case '>=':
+        result = Number(leftVal) >= Number(rightVal)
+        break
+      case '<=':
+        result = Number(leftVal) <= Number(rightVal)
+        break
+      default:
+        throw new Error(`Unknown comparison operator: ${operator}`)
+    }
+
+    return {
+      value: result,
+      type: 'boolean',
+      contextHits
+    }
+  }
+
+  private evaluateLogicalOperation(expression: string, operator: '&&' | '||', contextHits: string[]): ExpressionResult {
+    // Find the operator position to split properly
+    const operatorIndex = expression.indexOf(operator)
+    if (operatorIndex === -1) {
+      throw new Error(`Operator ${operator} not found in expression: ${expression}`)
+    }
+
+    const leftPart = expression.substring(0, operatorIndex).trim()
+    const rightPart = expression.substring(operatorIndex + operator.length).trim()
+
+    if (!leftPart || !rightPart) {
+      throw new Error(`Invalid logical expression: ${expression}`)
+    }
+
+    const leftResult = this.parseAndEvaluate(leftPart)
+    if (leftResult.error) return leftResult
+
+    contextHits.push(...leftResult.contextHits)
+
+    if (operator === '&&') {
+      if (!this.isTruthy(leftResult.value)) {
+        return {
+          value: false,
+          type: 'boolean',
+          contextHits
+        }
+      }
+    } else if (operator === '||') {
+      if (this.isTruthy(leftResult.value)) {
+        return {
+          value: true,
+          type: 'boolean',
+          contextHits
+        }
+      }
+    }
+
+    const rightResult = this.parseAndEvaluate(rightPart)
+    if (rightResult.error) return rightResult
+
+    contextHits.push(...rightResult.contextHits)
+
+    // For &&: we reach here only if left was truthy, so result is based on right
+    // For ||: we reach here only if left was falsy, so result is based on right
+    const result = this.isTruthy(rightResult.value)
+
+    return {
+      value: result,
+      type: 'boolean',
+      contextHits
+    }
+  }
+
+  private evaluateContainsFunction(expression: string, contextHits: string[]): ExpressionResult {
+    const match = expression.match(/^contains\((.+),\s*(.+)\)$/)
+    if (!match) {
+      throw new Error(`Invalid contains() function: ${expression}`)
+    }
+
+    const searchInResult = this.parseAndEvaluate(match[1].trim())
+    const searchForResult = this.parseAndEvaluate(match[2].trim())
+
+    contextHits.push(...searchInResult.contextHits, ...searchForResult.contextHits)
+
+    const searchIn = String(searchInResult.value)
+    const searchFor = String(searchForResult.value)
+
+    return {
+      value: searchIn.includes(searchFor),
+      type: 'boolean',
+      contextHits
+    }
+  }
+
+  private evaluateStringFunction(expression: string, contextHits: string[]): ExpressionResult {
+    const match = expression.match(/^(startsWith|endsWith)\((.+),\s*(.+)\)$/)
+    if (!match) {
+      throw new Error(`Invalid string function: ${expression}`)
+    }
+
+    const funcName = match[1]
+    const stringResult = this.parseAndEvaluate(match[2].trim())
+    const searchResult = this.parseAndEvaluate(match[3].trim())
+
+    contextHits.push(...stringResult.contextHits, ...searchResult.contextHits)
+
+    const str = String(stringResult.value)
+    const search = String(searchResult.value)
+
+    const value = funcName === 'startsWith'
+      ? str.startsWith(search)
+      : str.endsWith(search)
+
+    return {
+      value,
+      type: 'boolean',
+      contextHits
+    }
+  }
+
+  private evaluateStatusFunction(funcName: string): boolean {
+    // For demo purposes, assume success() is true and others are false
+    switch (funcName) {
+      case 'success':
+        return true
+      case 'failure':
+      case 'cancelled':
+        return false
+      case 'always':
+        return true
+      default:
+        return false
+    }
+  }
+
+  private evaluateFormatFunction(expression: string, contextHits: string[]): ExpressionResult {
+    const match = expression.match(/^format\((.+)\)$/)
+    if (!match) {
+      throw new Error(`Invalid format() function: ${expression}`)
+    }
+
+    const args = this.parseArguments(match[1])
+    if (args.length === 0) {
+      throw new Error('format() requires at least one argument')
+    }
+
+    const formatResult = this.parseAndEvaluate(args[0])
+    let formatString = String(formatResult.value)
+    contextHits.push(...formatResult.contextHits)
+
+    // Replace {0}, {1}, etc. with corresponding arguments
+    for (let i = 1; i < args.length; i++) {
+      const argResult = this.parseAndEvaluate(args[i])
+      contextHits.push(...argResult.contextHits)
+      formatString = formatString.replace(new RegExp(`\\{${i - 1}\\}`, 'g'), String(argResult.value))
+    }
+
+    return {
+      value: formatString,
+      type: 'string',
+      contextHits
+    }
+  }
+
+  private evaluateToJSONFunction(expression: string, contextHits: string[]): ExpressionResult {
+    const match = expression.match(/^toJSON\((.+)\)$/)
+    if (!match) {
+      throw new Error(`Invalid toJSON() function: ${expression}`)
+    }
+
+    const argResult = this.parseAndEvaluate(match[1].trim())
+    contextHits.push(...argResult.contextHits)
+
+    return {
+      value: JSON.stringify(argResult.value),
+      type: 'string',
+      contextHits
+    }
+  }
+
+  private evaluateFromJSONFunction(expression: string, contextHits: string[]): ExpressionResult {
+    const match = expression.match(/^fromJSON\((.+)\)$/)
+    if (!match) {
+      throw new Error(`Invalid fromJSON() function: ${expression}`)
+    }
+
+    const argResult = this.parseAndEvaluate(match[1].trim())
+    contextHits.push(...argResult.contextHits)
+
+    try {
+      const parsed = JSON.parse(String(argResult.value))
+      return {
+        value: parsed,
+        type: typeof parsed,
+        contextHits
+      }
+    } catch (error) {
+      throw new Error(`Invalid JSON in fromJSON(): ${argResult.value}`)
+    }
+  }
+
+  private parseArguments(argsString: string): string[] {
+    const args: string[] = []
+    let current = ''
+    let depth = 0
+    let inString = false
+    let stringChar = ''
+
+    for (let i = 0; i < argsString.length; i++) {
+      const char = argsString[i]
+
+      if (!inString) {
+        if (char === '"' || char === "'") {
+          inString = true
+          stringChar = char
+          current += char
+        } else if (char === '(' || char === '[') {
+          depth++
+          current += char
+        } else if (char === ')' || char === ']') {
+          depth--
+          current += char
+        } else if (char === ',' && depth === 0) {
+          args.push(current.trim())
+          current = ''
+        } else {
+          current += char
+        }
+      } else {
+        current += char
+        if (char === stringChar && argsString[i - 1] !== '\\') {
+          inString = false
+        }
+      }
+    }
+
+    if (current.trim()) {
+      args.push(current.trim())
+    }
+
+    return args
+  }
+
+  private isFunction(expression: string): boolean {
+    // Check if expression starts with a function name followed by parentheses
+    // This should match function calls even if they have property access after them
+    return /^(contains|startsWith|endsWith|format|toJSON|fromJSON|success|failure|always|cancelled|hashFiles)\s*\(.+\)/.test(expression.trim())
+  }
+
+  private hasOperators(expression: string): boolean {
+    // Check for operators outside of quoted strings and function calls
+    let inString = false
+    let stringChar = ''
+    let parenCount = 0
+
+    for (let i = 0; i < expression.length - 1; i++) {
+      const char = expression[i]
+      const nextChar = expression[i + 1]
+
+      if (!inString) {
+        if (char === '"' || char === "'") {
+          inString = true
+          stringChar = char
+        } else if (char === '(') {
+          parenCount++
+        } else if (char === ')') {
+          parenCount--
+        } else if (parenCount === 0) {
+          // Check for operators only when not inside parentheses
+          if (char === '=' && nextChar === '=') return true
+          if (char === '!' && nextChar === '=') return true
+          if (char === '>' && nextChar === '=') return true
+          if (char === '<' && nextChar === '=') return true
+          if (char === '>') return true
+          if (char === '<') return true
+          if (char === '&' && nextChar === '&') return true
+          if (char === '|' && nextChar === '|') return true
+          if (char === '!' && i > 0 && expression[i - 1] !== '=') return true
+        }
+      } else {
+        if (char === stringChar && (i === 0 || expression[i - 1] !== '\\')) {
+          inString = false
+        }
+      }
+    }
+
+    // Special check for single character operators at the end
+    const lastChar = expression[expression.length - 1]
+    if (!inString && parenCount === 0 && (lastChar === '>' || lastChar === '<')) {
+      return true
+    }
+
+    return false
+  }
+
+  private evaluateChainedPropertyAccess(expression: string, contextHits: string[]): ExpressionResult {
+    // Find the first dot after a closing parenthesis to split function from property access
+    let parenCount = 0
+    let splitIndex = -1
+
+    for (let i = 0; i < expression.length; i++) {
+      const char = expression[i]
+      if (char === '(') parenCount++
+      if (char === ')') parenCount--
+      if (char === '.' && parenCount === 0) {
+        splitIndex = i
+        break
+      }
+    }
+
+    if (splitIndex === -1) {
+      // No property access, just evaluate as normal
+      return this.parseAndEvaluate(expression)
+    }
+
+    const functionPart = expression.substring(0, splitIndex)
+    const propertyPart = expression.substring(splitIndex + 1)
+
+    // Evaluate the function part first
+    const functionResult = this.parseAndEvaluate(functionPart)
+    if (functionResult.error) return functionResult
+
+    contextHits.push(...functionResult.contextHits)
+
+    // Now evaluate property access on the result
+    const propertyPath = propertyPart.split('.')
+    let current = functionResult.value
+    let currentPath = 'result'
+
+    for (const prop of propertyPath) {
+      if (current && typeof current === 'object' && prop in current) {
+        current = current[prop]
+        currentPath += `.${prop}`
+        contextHits.push(currentPath)
+      } else {
+        throw new Error(`Property '${prop}' not found in result`)
+      }
+    }
+
+    return {
+      value: current,
+      type: typeof current,
+      contextHits
+    }
+  }
+
+  private isTruthy(value: any): boolean {
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'string') return value !== ''
+    if (typeof value === 'number') return value !== 0
+    return value != null
+  }
+}
