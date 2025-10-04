@@ -2,7 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  base: '/github-action-expression-playground/',
+  base: process.env.VITE_BASE || '/github-action-expression-playground/',
   plugins: [react()],
   optimizeDeps: {
     include: ['monaco-editor/esm/vs/language/json/json.worker', 'monaco-editor/esm/vs/editor/editor.worker'],
