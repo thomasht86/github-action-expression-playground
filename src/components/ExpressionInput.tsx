@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Editor as MonacoEditor } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
-import { ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
+import { ClipboardDocumentListIcon, BeakerIcon } from '@heroicons/react/24/outline'
 import { ExpressionResult } from '../types'
 
 interface ExpressionExample {
@@ -33,6 +33,7 @@ const EXAMPLES: ExpressionExample[] = [
   { category: 'JSON Functions', title: 'GitHub Context to JSON', expression: 'toJSON(github)' },
   { category: 'JSON Functions', title: 'Event Payload to JSON', expression: 'toJSON(github.event)' },
   { category: 'JSON Functions', title: 'Env Variables to JSON', expression: 'toJSON(env)' },
+  { category: 'JSON Functions', title: 'Parse JSON String', expression: 'fromJSON(\'{"include":[{"project":"foo","config":"Debug"}]}\')' },
   { category: 'Matrix Strategy', title: 'Matrix OS Value', expression: "matrix.os" },
   { category: 'Matrix Strategy', title: 'Matrix Node Version', expression: "matrix.node" },
   { category: 'Matrix Strategy', title: 'Matrix to JSON', expression: "toJSON(matrix)" },
@@ -328,12 +329,14 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
           <label htmlFor="expression-input" className="section-label">
             Expression
           </label>
-          <select
-            className="example-dropdown"
-            onChange={(e) => handleExampleSelect(e.target.value)}
-            value=""
-          >
-            <option value="">📚 Load Example...</option>
+          <div className="example-dropdown-wrapper">
+            <BeakerIcon className="dropdown-icon" />
+            <select
+              className="example-dropdown"
+              onChange={(e) => handleExampleSelect(e.target.value)}
+              value=""
+            >
+              <option value="">Load Example...</option>
             {Object.entries(groupedExamples).map(([category, examples]) => (
               <optgroup key={category} label={category}>
                 {examples.map((example, index) => (
@@ -343,7 +346,8 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
                 ))}
               </optgroup>
             ))}
-          </select>
+            </select>
+          </div>
         </div>
         <div className="expression-monaco">
           <button
@@ -425,6 +429,23 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
             )}
           </div>
         ) : null}
+      </div>
+
+      {/* Example chips */}
+      <div className="example-chips">
+        <span className="chips-label">Examples:</span>
+        <div className="chips-container">
+          {EXAMPLES.map((example, index) => (
+            <button
+              key={index}
+              className="example-chip"
+              onClick={() => setExpression(example.expression)}
+              title={example.expression}
+            >
+              {example.title}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
     </>
