@@ -119,9 +119,12 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
     return acc
   }, {} as Record<string, ExpressionExample[]>)
 
-  const handleExampleSelect = (selectedExpression: string) => {
+  const handleExampleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedExpression = e.target.value
     if (selectedExpression) {
       setExpression(selectedExpression)
+      // Reset the select to default after selection
+      e.target.value = ''
     }
   }
 
@@ -333,8 +336,8 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
             <BeakerIcon className="dropdown-icon" />
             <select
               className="example-dropdown"
-              onChange={(e) => handleExampleSelect(e.target.value)}
-              value=""
+              onChange={handleExampleSelect}
+              defaultValue=""
             >
               <option value="">Load Example...</option>
             {Object.entries(groupedExamples).map(([category, examples]) => (
