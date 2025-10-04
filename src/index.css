@@ -76,3 +76,21 @@ body {
   border-radius: 4px;
   overflow: hidden;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  body {
+    min-width: 320px;
+  }
+
+  .playground-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .right-panel {
+    grid-template-rows: auto;
+  }
+}

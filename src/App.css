@@ -1006,3 +1006,184 @@
   color: #f48771;
   font-size: 13px;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  /* Header adjustments for mobile */
+  .app-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+    align-items: flex-start;
+  }
+
+  .app-header h1 {
+    font-size: 16px;
+  }
+
+  .header-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .examples-toggle,
+  .share-button,
+  .github-button,
+  .light-mode-button {
+    padding: 6px 12px;
+    font-size: 12px;
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .github-button {
+    flex: 1 1 100%;
+  }
+
+  /* Quick Context Selector - stack on mobile */
+  .quick-context-selector {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+    align-items: stretch;
+  }
+
+  .selector-group {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .repo-input,
+  .sha-input,
+  .branch-input,
+  .event-select {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .apply-button {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  /* Main content - stack panels vertically on mobile */
+  .main-content {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .left-panel {
+    border-right: none;
+    border-bottom: 1px solid #3c3c3c;
+    padding: 16px;
+    overflow-y: visible;
+  }
+
+  .right-panel {
+    padding: 16px;
+  }
+
+  /* Variable table - stack columns on mobile */
+  .variable-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+    background-color: #2d2d30;
+    border-radius: 4px;
+    margin-bottom: 12px;
+  }
+
+  .variable-row input {
+    width: 100%;
+  }
+
+  .variable-row .scope-indicator {
+    display: inline-block;
+    width: auto;
+  }
+
+  .variable-row .remove-btn {
+    align-self: flex-start;
+  }
+
+  /* Tab bar */
+  .tab-bar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab {
+    white-space: nowrap;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  /* Import/Export buttons */
+  .import-export-buttons {
+    flex-wrap: wrap;
+  }
+
+  .export-btn,
+  .import-btn,
+  .import-workflow-btn,
+  .share-btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Expression header */
+  .expression-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .example-dropdown {
+    width: 100%;
+  }
+
+  /* Context field adjustments */
+  .context-field input,
+  .context-field select,
+  .context-field textarea {
+    font-size: 14px;
+  }
+
+  /* Table header */
+  .table-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .scope-switcher {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .add-variable-btn {
+    width: 100%;
+  }
+
+  /* Result section */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .copy-button-wrapper {
+    align-self: flex-end;
+  }
+}
