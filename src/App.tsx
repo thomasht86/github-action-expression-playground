@@ -5,7 +5,7 @@ import { QuickContextSelector } from './components/QuickContextSelector'
 import { ContextVariable, GitHubContext, ExpressionResult, EvaluationContext } from './types'
 import { ExpressionEvaluator } from './utils/expressionEvaluator'
 import { ShareIcon } from '@heroicons/react/24/outline'
-import { GitBranch } from 'lucide-react'
+import { GitBranch, Github } from 'lucide-react'
 import './App.css'
 
 // Default secrets that are always present (not saved to localStorage)
@@ -207,6 +207,16 @@ function App() {
           GitHub Actions Expression Evaluator
         </h1>
         <div className="header-actions">
+          <a
+            href="https://github.com/thomasht86/github-action-expression-playground"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="github-button"
+            title="View on GitHub"
+          >
+            <Github className="icon" />
+            View on GitHub
+          </a>
           <button onClick={handleShareLink} className="share-button">
             <ShareIcon className="icon" />
             Share

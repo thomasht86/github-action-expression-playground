@@ -39,7 +39,8 @@
 }
 
 .examples-toggle,
-.share-button {
+.share-button,
+.github-button {
   background-color: #0e639c;
   color: white;
   border: none;
@@ -51,6 +52,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  text-decoration: none;
 }
 
 .examples-toggle:hover,
@@ -58,7 +60,16 @@
   background-color: #1177bb;
 }
 
-.share-button .icon {
+.github-button {
+  background-color: #24292e;
+}
+
+.github-button:hover {
+  background-color: #2f363d;
+}
+
+.share-button .icon,
+.github-button .icon {
   width: 16px;
   height: 16px;
 }
