@@ -81,19 +81,27 @@ export class ExpressionEvaluator {
       }
     }
 
-    // Handle property access (e.g., github.ref, env.NODE_VERSION)
-    // Only if it doesn't contain operators and isn't a function call
-    if (expression.includes('.') &&
-        !this.isFunction(expression) &&
-        !this.hasOperators(expression)) {
-      return this.evaluatePropertyAccess(expression, contextHits)
+    // Handle logical operations FIRST (lowest precedence)
+    // This ensures comparisons are evaluated before logical operations
+    if (this.containsOperatorOutsideParens(expression, '||')) {
+      return this.evaluateLogicalOperation(expression, '||', contextHits)
+    }
+    if (this.containsOperatorOutsideParens(expression, '&&')) {
+      return this.evaluateLogicalOperation(expression, '&&', contextHits)
     }
 
-    // Handle chained property access after functions (e.g., fromJSON('{}').key)
-    if (expression.includes('.') &&
-        this.isFunction(expression) &&
-        !this.hasOperators(expression)) {
-      return this.evaluateChainedPropertyAccess(expression, contextHits)
+    // Handle negation
+    if (expression.startsWith('!') && !expression.includes('!=')) {
+      const innerExpression = expression.slice(1).trim()
+      const innerResult = this.parseAndEvaluate(innerExpression)
+      if (innerResult.contextHits) {
+        contextHits.push(...innerResult.contextHits)
+      }
+      return {
+        value: !this.isTruthy(innerResult.value),
+        type: 'boolean',
+        contextHits
+      }
     }
 
     // Handle comparison operations (order matters - check >= before >)
@@ -116,26 +124,19 @@ export class ExpressionEvaluator {
       return this.evaluateComparison(expression, '!=', contextHits)
     }
 
-    // Handle negation
-    if (expression.startsWith('!') && !expression.includes('!=')) {
-      const innerExpression = expression.slice(1).trim()
-      const innerResult = this.parseAndEvaluate(innerExpression)
-      if (innerResult.contextHits) {
-        contextHits.push(...innerResult.contextHits)
-      }
-      return {
-        value: !this.isTruthy(innerResult.value),
-        type: 'boolean',
-        contextHits
-      }
+    // Handle property access (e.g., github.ref, env.NODE_VERSION)
+    // Only if it doesn't contain operators and isn't a function call
+    if (expression.includes('.') &&
+        !this.isFunction(expression) &&
+        !this.hasOperators(expression)) {
+      return this.evaluatePropertyAccess(expression, contextHits)
     }
 
-    // Handle logical operations
-    if (expression.includes('&&')) {
-      return this.evaluateLogicalOperation(expression, '&&', contextHits)
-    }
-    if (expression.includes('||')) {
-      return this.evaluateLogicalOperation(expression, '||', contextHits)
+    // Handle chained property access after functions (e.g., fromJSON('{}').key)
+    if (expression.includes('.') &&
+        this.isFunction(expression) &&
+        !this.hasOperators(expression)) {
+      return this.evaluateChainedPropertyAccess(expression, contextHits)
     }
 
     // Handle string literals
@@ -264,8 +265,9 @@ export class ExpressionEvaluator {
   }
 
   private evaluateLogicalOperation(expression: string, operator: '&&' | '||', contextHits: string[]): ExpressionResult {
-    // Find the operator position to split properly
-    const operatorIndex = expression.indexOf(operator)
+    // Find the LAST operator position outside of parentheses and strings
+    // This ensures we split at the lowest precedence operator
+    const operatorIndex = this.findLastOperatorIndex(expression, operator)
     if (operatorIndex === -1) {
       throw new Error(`Operator ${operator} not found in expression: ${expression}`)
     }
@@ -317,13 +319,18 @@ export class ExpressionEvaluator {
   }
 
   private evaluateContainsFunction(expression: string, contextHits: string[]): ExpressionResult {
-    const match = expression.match(/^contains\((.+),\s*(.+)\)$/)
+    const match = expression.match(/^contains\((.+)\)$/)
     if (!match) {
       throw new Error(`Invalid contains() function: ${expression}`)
     }
 
-    const searchInResult = this.parseAndEvaluate(match[1].trim())
-    const searchForResult = this.parseAndEvaluate(match[2].trim())
+    const args = this.parseArguments(match[1])
+    if (args.length !== 2) {
+      throw new Error(`contains() requires exactly 2 arguments, got ${args.length}`)
+    }
+
+    const searchInResult = this.parseAndEvaluate(args[0].trim())
+    const searchForResult = this.parseAndEvaluate(args[1].trim())
 
     if (searchInResult.contextHits) contextHits.push(...searchInResult.contextHits)
     if (searchForResult.contextHits) contextHits.push(...searchForResult.contextHits)
@@ -339,14 +346,19 @@ export class ExpressionEvaluator {
   }
 
   private evaluateStringFunction(expression: string, contextHits: string[]): ExpressionResult {
-    const match = expression.match(/^(startsWith|endsWith)\((.+),\s*(.+)\)$/)
-    if (!match) {
+    const funcMatch = expression.match(/^(startsWith|endsWith)\((.+)\)$/)
+    if (!funcMatch) {
       throw new Error(`Invalid string function: ${expression}`)
     }
 
-    const funcName = match[1]
-    const stringResult = this.parseAndEvaluate(match[2].trim())
-    const searchResult = this.parseAndEvaluate(match[3].trim())
+    const funcName = funcMatch[1]
+    const args = this.parseArguments(funcMatch[2])
+    if (args.length !== 2) {
+      throw new Error(`${funcName}() requires exactly 2 arguments, got ${args.length}`)
+    }
+
+    const stringResult = this.parseAndEvaluate(args[0].trim())
+    const searchResult = this.parseAndEvaluate(args[1].trim())
 
     if (stringResult.contextHits) contextHits.push(...stringResult.contextHits)
     if (searchResult.contextHits) contextHits.push(...searchResult.contextHits)
@@ -596,5 +608,81 @@ export class ExpressionEvaluator {
     if (typeof value === 'string') return value !== ''
     if (typeof value === 'number') return value !== 0
     return value != null
+  }
+
+  private containsOperatorOutsideParens(expression: string, operator: '&&' | '||'): boolean {
+    // Check if operator exists outside of parentheses and string literals
+    let inString = false
+    let stringChar = ''
+    let parenCount = 0
+
+    for (let i = 0; i < expression.length - 1; i++) {
+      const char = expression[i]
+      const nextChar = expression[i + 1]
+
+      if (!inString) {
+        if (char === '"' || char === "'") {
+          inString = true
+          stringChar = char
+        } else if (char === '(') {
+          parenCount++
+        } else if (char === ')') {
+          parenCount--
+        } else if (parenCount === 0) {
+          // Check for operator only when not inside parentheses
+          if (operator === '&&' && char === '&' && nextChar === '&') {
+            return true
+          }
+          if (operator === '||' && char === '|' && nextChar === '|') {
+            return true
+          }
+        }
+      } else {
+        if (char === stringChar && (i === 0 || expression[i - 1] !== '\\')) {
+          inString = false
+        }
+      }
+    }
+
+    return false
+  }
+
+  private findLastOperatorIndex(expression: string, operator: '&&' | '||'): number {
+    // Find the LAST occurrence of operator outside parentheses and strings
+    // This gives us the lowest precedence split point
+    let inString = false
+    let stringChar = ''
+    let parenCount = 0
+    let lastIndex = -1
+
+    for (let i = 0; i < expression.length - 1; i++) {
+      const char = expression[i]
+      const nextChar = expression[i + 1]
+
+      if (!inString) {
+        if (char === '"' || char === "'") {
+          inString = true
+          stringChar = char
+        } else if (char === '(') {
+          parenCount++
+        } else if (char === ')') {
+          parenCount--
+        } else if (parenCount === 0) {
+          // Check for operator only when not inside parentheses
+          if (operator === '&&' && char === '&' && nextChar === '&') {
+            lastIndex = i
+          }
+          if (operator === '||' && char === '|' && nextChar === '|') {
+            lastIndex = i
+          }
+        }
+      } else {
+        if (char === stringChar && (i === 0 || expression[i - 1] !== '\\')) {
+          inString = false
+        }
+      }
+    }
+
+    return lastIndex
   }
 }
