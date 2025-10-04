@@ -7,7 +7,8 @@
       "Bash(cat:*)",
       "WebFetch(domain:docs.github.com)",
       "Bash(npm run test:run:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd matrix context support and improve expression examples\n\nNew features:\n- Added Matrix tab with Monaco YAML editor\n- Matrix values editable and persist in localStorage/share URL\n- Added 5 matrix-related expression examples\n\nMatrix editor:\n- Uses Monaco editor with YAML syntax highlighting\n- Validates YAML input with error messages\n- Follows GitHub Actions workflow syntax\n\nExpression examples improvements:\n- Removed invalid status check functions (success, failure, always, cancelled)\n  These only work in workflow if: conditionals, not standalone expressions\n- Added useful examples: github.repository, github.sha, multi-param format\n- Added matrix examples: matrix.os, matrix.node, toJSON(matrix)\n- All examples verified against official GitHub Actions documentation\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

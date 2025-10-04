@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Editor as MonacoEditor } from '@monaco-editor/react'
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { ContextVariable } from '../types'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 
@@ -21,6 +22,7 @@ export const ContextBuilder: React.FC<ContextBuilderProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('env')
   const [currentScope, setCurrentScope] = useState<'workflow' | 'job' | 'step'>('workflow')
   const [yamlError, setYamlError] = useState<string | null>(null)
+  const [revealedSecrets, setRevealedSecrets] = useState<Set<number>>(new Set())
   const [yamlValue, setYamlValue] = useState<string>(() => {
     try {
       return stringifyYaml(matrix)
@@ -28,6 +30,18 @@ export const ContextBuilder: React.FC<ContextBuilderProps> = ({
       return 'os: ubuntu-latest\nnode: "18"\ninclude:\n  - os: ubuntu-latest\n    node: "16"\n  - os: windows-latest\n    node: "18"'
     }
   })
+
+  const toggleSecretVisibility = (index: number) => {
+    setRevealedSecrets(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(index)) {
+        newSet.delete(index)
+      } else {
+        newSet.add(index)
+      }
+      return newSet
+    })
+  }
 
   const addVariable = (type: 'env' | 'vars' | 'secrets' | 'inputs') => {
     const newVar: ContextVariable = {
@@ -75,37 +89,59 @@ export const ContextBuilder: React.FC<ContextBuilderProps> = ({
           </button>
         </div>
 
-        {filteredVars.map((variable, index) => (
-          <div key={index} className="variable-row">
-            <input
-              type="text"
-              placeholder="Name"
-              value={variable.name}
-              onChange={(e) => updateVariable(
-                variables.indexOf(variable),
-                'name',
-                e.target.value
-              )}
-            />
-            <input
-              type={type === 'secrets' ? 'password' : 'text'}
-              placeholder="Value"
-              value={variable.value}
-              onChange={(e) => updateVariable(
-                variables.indexOf(variable),
-                'value',
-                e.target.value
-              )}
-            />
-            <span className="scope-indicator">{variable.scope}</span>
-            <button
-              className="remove-btn"
-              onClick={() => removeVariable(variables.indexOf(variable))}
-            >
-              ×
-            </button>
-          </div>
-        ))}
+        {filteredVars.map((variable, index) => {
+          const globalIndex = variables.indexOf(variable)
+          const isSecret = type === 'secrets'
+          const isRevealed = revealedSecrets.has(globalIndex)
+
+          return (
+            <div key={index} className="variable-row">
+              <input
+                type="text"
+                placeholder="Name"
+                value={variable.name}
+                onChange={(e) => updateVariable(
+                  globalIndex,
+                  'name',
+                  e.target.value
+                )}
+              />
+              <div className="variable-value-container">
+                <input
+                  type={isSecret && !isRevealed ? 'password' : 'text'}
+                  placeholder="Value"
+                  value={variable.value}
+                  onChange={(e) => updateVariable(
+                    globalIndex,
+                    'value',
+                    e.target.value
+                  )}
+                  className="variable-value-input"
+                />
+                {isSecret && (
+                  <button
+                    className="reveal-secret-btn"
+                    onClick={() => toggleSecretVisibility(globalIndex)}
+                    title={isRevealed ? 'Hide secret' : 'Reveal secret'}
+                  >
+                    {isRevealed ? (
+                      <EyeSlashIcon className="icon" />
+                    ) : (
+                      <EyeIcon className="icon" />
+                    )}
+                  </button>
+                )}
+              </div>
+              <span className="scope-indicator">{variable.scope}</span>
+              <button
+                className="remove-btn"
+                onClick={() => removeVariable(globalIndex)}
+              >
+                ×
+              </button>
+            </div>
+          )
+        })}
       </div>
     )
   }

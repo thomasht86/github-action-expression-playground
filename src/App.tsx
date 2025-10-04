@@ -8,6 +8,11 @@ import { ShareIcon } from '@heroicons/react/24/outline'
 import { GitBranch } from 'lucide-react'
 import './App.css'
 
+// Default secrets that are always present (not saved to localStorage)
+const DEFAULT_SECRETS: ContextVariable[] = [
+  { name: 'NPM_TOKEN', value: 'npm_secret_token_123', type: 'secrets', scope: 'workflow' },
+]
+
 function App() {
   const [variables, setVariables] = useState<ContextVariable[]>([
     // Default variables for examples
@@ -17,7 +22,7 @@ function App() {
     { name: 'MAJOR', value: '1', type: 'vars', scope: 'workflow' },
     { name: 'MINOR', value: '2', type: 'vars', scope: 'workflow' },
     { name: 'BUILD', value: 'prod', type: 'vars', scope: 'workflow' },
-    { name: 'NPM_TOKEN', value: 'npm_secret_token_123', type: 'secrets', scope: 'workflow' },
+    ...DEFAULT_SECRETS,
   ])
   const [showShareNotification, setShowShareNotification] = useState(false)
   const [matrix, setMatrix] = useState<Record<string, any>>({
@@ -118,7 +123,10 @@ function App() {
     if (saved && !window.location.hash) {
       try {
         const state = JSON.parse(saved)
-        if (state.variables) setVariables(state.variables)
+        if (state.variables) {
+          // Merge saved variables with default secrets (which are never saved)
+          setVariables([...state.variables, ...DEFAULT_SECRETS])
+        }
         if (state.github) setGitHub(state.github)
         if (state.matrix) setMatrix(state.matrix)
       } catch (error) {

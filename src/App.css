@@ -497,6 +497,39 @@
   border-color: #007acc;
 }
 
+.variable-value-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.variable-value-input {
+  flex: 1;
+}
+
+.reveal-secret-btn {
+  background: none;
+  border: none;
+  color: #cccccc;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.reveal-secret-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+.reveal-secret-btn:hover {
+  background-color: #ffffff1a;
+}
+
 .scope-indicator {
   font-size: 11px;
   color: #888888;
