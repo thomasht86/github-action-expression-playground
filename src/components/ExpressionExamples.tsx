@@ -125,30 +125,118 @@ export const ExpressionExamples: React.FC<ExpressionExamplesProps> = ({ onSelect
       description: 'Returns true if workflow was cancelled'
     },
 
-    // Complex Expressions
+    // Deep Context Access
+    {
+      category: 'Deep Context Access',
+      title: 'Repository Owner',
+      expression: "github.event.repository.owner.login",
+      description: 'Access nested repository owner login'
+    },
+    {
+      category: 'Deep Context Access',
+      title: 'Commit Author Email',
+      expression: "github.event.pusher.email",
+      description: 'Get the email of the person who pushed'
+    },
+    {
+      category: 'Deep Context Access',
+      title: 'Runner Architecture',
+      expression: "runner.arch",
+      description: 'Get the architecture of the runner (X64, ARM64, etc.)'
+    },
+    {
+      category: 'Deep Context Access',
+      title: 'Strategy Job Index',
+      expression: "strategy.job_index",
+      description: 'Get the index of the current job in a matrix'
+    },
+
+    // Advanced JSON Operations
+    {
+      category: 'Advanced JSON',
+      title: 'Parse JSON Array String',
+      expression: "toJSON(fromJSON('[\"ubuntu-latest\", \"windows-latest\", \"macos-latest\"]'))",
+      description: 'Parse JSON array and convert back to string'
+    },
+    {
+      category: 'Advanced JSON',
+      title: 'Check Array Membership',
+      expression: "contains(toJSON(fromJSON('[\"push\", \"pull_request\"]')), github.event_name)",
+      description: 'Check if event is in allowed list using JSON'
+    },
+    {
+      category: 'Advanced JSON',
+      title: 'Parse Config Object',
+      expression: "contains(toJSON(fromJSON('{\"deploy\": true}')), 'deploy')",
+      description: 'Parse JSON and check for property'
+    },
+    {
+      category: 'Advanced JSON',
+      title: 'Nested JSON Object',
+      expression: "toJSON(fromJSON('{\"env\": {\"prod\": \"api.prod.com\"}}'))",
+      description: 'Parse and re-stringify nested JSON object'
+    },
+
+    // Multi-step Logic
     {
       category: 'Complex Examples',
-      title: 'Production Deploy',
-      expression: "github.ref == 'refs/heads/main' && env.APP_ENV == 'production'",
-      description: 'Deploy only on main branch in production'
+      title: 'Multi-condition Branch Check',
+      expression: "github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')",
+      description: 'Combine conditions to filter branch pushes'
     },
     {
       category: 'Complex Examples',
-      title: 'Multiple Events',
-      expression: "github.event_name == 'push' || github.event_name == 'workflow_dispatch'",
-      description: 'Run on push or manual trigger'
+      title: 'Production Deployment Gate',
+      expression: "github.ref == 'refs/heads/main' && success()",
+      description: 'Check conditions before production deploy'
     },
     {
       category: 'Complex Examples',
-      title: 'Conditional Message',
-      expression: "format('Deploying {0} to {1}', github.sha, env.ENVIRONMENT || 'staging')",
-      description: 'Build deployment message with fallback'
+      title: 'Version from Job Output',
+      expression: "format('v{0}-{1}', needs.build.outputs.version, github.run_number)",
+      description: 'Combine job output with run number for versioning'
     },
     {
       category: 'Complex Examples',
-      title: 'Tag Version Build',
-      expression: "format('tag-{0}', vars.BUILD)",
-      description: 'Create tag name from variable'
+      title: 'Dynamic Environment Name',
+      expression: "format('{0}-{1}-{2}', matrix.os, matrix.node, github.sha)",
+      description: 'Build environment name from matrix and commit'
+    },
+    {
+      category: 'Complex Examples',
+      title: 'Branch-based Configuration',
+      expression: "contains(github.ref, 'release/') || contains(github.ref, 'main')",
+      description: 'Check if branch is a release or main branch'
+    },
+    {
+      category: 'Complex Examples',
+      title: 'Secret Validation',
+      expression: "secrets.DEPLOY_KEY != ''",
+      description: 'Ensure secret exists before deployment'
+    },
+    {
+      category: 'Complex Examples',
+      title: 'Array Contains via JSON',
+      expression: "contains(toJSON(fromJSON(vars.DEPLOY_ENVIRONMENTS)), env.ENVIRONMENT)",
+      description: 'Check if environment is in deployment list'
+    },
+    {
+      category: 'Complex Examples',
+      title: 'Event Metadata Format',
+      expression: "format('🚀 {0}@{1} by @{2}', github.repository, github.sha, github.actor)",
+      description: 'Build rich deployment message with emojis'
+    },
+    {
+      category: 'Complex Examples',
+      title: 'Branch and Event Check',
+      expression: "startsWith(github.ref, 'refs/heads/') && github.event_name == 'push'",
+      description: 'Verify branch push conditions'
+    },
+    {
+      category: 'Complex Examples',
+      title: 'Fallback Values',
+      expression: "env.NODE_VERSION != '' && env.NODE_VERSION || '18'",
+      description: 'Use environment variable with fallback'
     }
   ]
 
