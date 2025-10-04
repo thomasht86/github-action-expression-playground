@@ -415,9 +415,60 @@ describe('Expression Examples', () => {
 
     it('should use fallback for environment variable', async () => {
       const result = await evaluator.evaluateExpression("env.NODE_VERSION != '' && env.NODE_VERSION || '18'")
-      expect(result.value).toBe(true) // Returns boolean due to how && works in evaluator
-      expect(result.type).toBe('boolean')
+      // Now returns actual value '18' thanks to ternary-style logic!
+      expect(result.value).toBe('18')
+      expect(result.type).toBe('string')
       expect(result.contextHits).toContain('env.NODE_VERSION')
+    })
+
+    it('should use ternary-style logic to select production or development', async () => {
+      const result = await evaluator.evaluateExpression("github.ref == 'refs/heads/main' && 'production' || 'development'")
+      expect(result.value).toBe('production')
+      expect(result.type).toBe('string')
+    })
+
+    it('should return first truthy value with OR', async () => {
+      const result = await evaluator.evaluateExpression("env.TEST_ENV || env.NODE_VERSION")
+      expect(result.value).toBe('test') // env.TEST_ENV is 'test'
+      expect(result.type).toBe('string')
+    })
+
+    it('should short-circuit AND and return falsy value', async () => {
+      const result = await evaluator.evaluateExpression("failure() && 'this should not execute'")
+      expect(result.value).toBe(false)
+      expect(result.type).toBe('boolean')
+    })
+  })
+
+  describe('Join Function Examples', () => {
+    it('should join array with default separator', async () => {
+      const result = await evaluator.evaluateExpression("join(fromJSON('[\"a\", \"b\", \"c\"]'))")
+      expect(result.value).toBe('a,b,c')
+      expect(result.type).toBe('string')
+    })
+
+    it('should join array with custom separator', async () => {
+      const result = await evaluator.evaluateExpression("join(fromJSON('[\"bug\", \"help wanted\", \"feature\"]'), ', ')")
+      expect(result.value).toBe('bug, help wanted, feature')
+      expect(result.type).toBe('string')
+    })
+
+    it('should join array with pipe separator', async () => {
+      const result = await evaluator.evaluateExpression("join(fromJSON('[\"commit1\", \"commit2\", \"commit3\"]'), ' | ')")
+      expect(result.value).toBe('commit1 | commit2 | commit3')
+      expect(result.type).toBe('string')
+    })
+
+    it('should handle single element array', async () => {
+      const result = await evaluator.evaluateExpression("join(fromJSON('[\"single\"]'), ', ')")
+      expect(result.value).toBe('single')
+      expect(result.type).toBe('string')
+    })
+
+    it('should handle empty array', async () => {
+      const result = await evaluator.evaluateExpression("join(fromJSON('[]'), ', ')")
+      expect(result.value).toBe('')
+      expect(result.type).toBe('string')
     })
   })
 
