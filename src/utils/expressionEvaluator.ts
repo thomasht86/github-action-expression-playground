@@ -71,6 +71,11 @@ export class ExpressionEvaluator {
       return this.evaluateFromJSONFunction(expression, contextHits)
     }
 
+    // Handle join() function
+    if (expression.match(/^join\(/)) {
+      return this.evaluateJoinFunction(expression, contextHits)
+    }
+
     // Handle hashFiles() function
     if (expression.match(/^hashFiles\(/)) {
       return {
@@ -285,21 +290,25 @@ export class ExpressionEvaluator {
     if (leftResult.contextHits) contextHits.push(...leftResult.contextHits)
 
     if (operator === '&&') {
+      // For &&: if left is falsy, return left value (short-circuit)
       if (!this.isTruthy(leftResult.value)) {
         return {
-          value: false,
-          type: 'boolean',
+          value: leftResult.value,
+          type: leftResult.type,
           contextHits
         }
       }
+      // Otherwise evaluate right and return its value
     } else if (operator === '||') {
+      // For ||: if left is truthy, return left value (short-circuit)
       if (this.isTruthy(leftResult.value)) {
         return {
-          value: true,
-          type: 'boolean',
+          value: leftResult.value,
+          type: leftResult.type,
           contextHits
         }
       }
+      // Otherwise evaluate right and return its value
     }
 
     const rightResult = this.parseAndEvaluate(rightPart)
@@ -307,13 +316,12 @@ export class ExpressionEvaluator {
 
     if (rightResult.contextHits) contextHits.push(...rightResult.contextHits)
 
-    // For &&: we reach here only if left was truthy, so result is based on right
-    // For ||: we reach here only if left was falsy, so result is based on right
-    const result = this.isTruthy(rightResult.value)
-
+    // Return the right value (not a boolean)
+    // For &&: we reach here only if left was truthy, so return right value
+    // For ||: we reach here only if left was falsy, so return right value
     return {
-      value: result,
-      type: 'boolean',
+      value: rightResult.value,
+      type: rightResult.type,
       contextHits
     }
   }
@@ -458,6 +466,47 @@ export class ExpressionEvaluator {
     }
   }
 
+  private evaluateJoinFunction(expression: string, contextHits: string[]): ExpressionResult {
+    const match = expression.match(/^join\((.+)\)$/)
+    if (!match) {
+      throw new Error(`Invalid join() function: ${expression}`)
+    }
+
+    const args = this.parseArguments(match[1])
+    if (args.length < 1 || args.length > 2) {
+      throw new Error(`join() requires 1 or 2 arguments, got ${args.length}`)
+    }
+
+    const arrayResult = this.parseAndEvaluate(args[0].trim())
+    if (arrayResult.contextHits) contextHits.push(...arrayResult.contextHits)
+
+    // Get separator (default to comma)
+    let separator = ','
+    if (args.length === 2) {
+      const sepResult = this.parseAndEvaluate(args[1].trim())
+      if (sepResult.contextHits) contextHits.push(...sepResult.contextHits)
+      separator = String(sepResult.value)
+    }
+
+    // Convert value to array if it isn't already
+    let array: any[]
+    if (Array.isArray(arrayResult.value)) {
+      array = arrayResult.value
+    } else if (arrayResult.value != null) {
+      array = [arrayResult.value]
+    } else {
+      array = []
+    }
+
+    const result = array.map(item => String(item)).join(separator)
+
+    return {
+      value: result,
+      type: 'string',
+      contextHits
+    }
+  }
+
   private parseArguments(argsString: string): string[] {
     const args: string[] = []
     let current = ''
@@ -503,7 +552,7 @@ export class ExpressionEvaluator {
   private isFunction(expression: string): boolean {
     // Check if expression starts with a function name followed by parentheses
     // This should match function calls even if they have property access after them
-    return /^(contains|startsWith|endsWith|format|toJSON|fromJSON|success|failure|always|cancelled|hashFiles)\s*\(.+\)/.test(expression.trim())
+    return /^(contains|startsWith|endsWith|format|toJSON|fromJSON|join|success|failure|always|cancelled|hashFiles)\s*\(.+\)/.test(expression.trim())
   }
 
   private hasOperators(expression: string): boolean {
