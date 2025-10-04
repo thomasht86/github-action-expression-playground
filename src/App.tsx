@@ -4,7 +4,7 @@ import { ContextBuilder } from './components/ContextBuilder'
 import { QuickContextSelector } from './components/QuickContextSelector'
 import { ContextVariable, GitHubContext, ExpressionResult, EvaluationContext } from './types'
 import { ExpressionEvaluator } from './utils/expressionEvaluator'
-import { ShareIcon } from '@heroicons/react/24/outline'
+import { ShareIcon, SunIcon } from '@heroicons/react/24/outline'
 import { GitBranch, Github } from 'lucide-react'
 import './App.css'
 
@@ -25,6 +25,7 @@ function App() {
     ...DEFAULT_SECRETS,
   ])
   const [showShareNotification, setShowShareNotification] = useState(false)
+  const [showLightModeJoke, setShowLightModeJoke] = useState(false)
   const [matrix, setMatrix] = useState<Record<string, any>>({
     os: 'ubuntu-latest',
     node: '18',
@@ -199,6 +200,11 @@ function App() {
     }
   }
 
+  const handleLightModeClick = () => {
+    setShowLightModeJoke(true)
+    setTimeout(() => setShowLightModeJoke(false), 5000)
+  }
+
   return (
     <div className="evaluator-container">
       <header className="app-header">
@@ -207,6 +213,9 @@ function App() {
           GitHub Actions Expression Evaluator
         </h1>
         <div className="header-actions">
+          <button onClick={handleLightModeClick} className="light-mode-button" title="Toggle light mode">
+            <SunIcon className="icon-large" />
+          </button>
           <a
             href="https://github.com/thomasht86/github-action-expression-playground"
             target="_blank"
@@ -224,6 +233,11 @@ function App() {
           {showShareNotification && (
             <div className="share-notification">
               ✓ Link copied
+            </div>
+          )}
+          {showLightModeJoke && (
+            <div className="light-mode-notification">
+              😎 Sorry! Dark mode is awesome and good for your eyes
             </div>
           )}
         </div>

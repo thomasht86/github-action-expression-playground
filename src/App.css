@@ -40,7 +40,8 @@
 
 .examples-toggle,
 .share-button,
-.github-button {
+.github-button,
+.light-mode-button {
   background-color: #0e639c;
   color: white;
   border: none;
@@ -68,13 +69,31 @@
   background-color: #2f363d;
 }
 
+.light-mode-button {
+  background-color: #78716c;
+}
+
+.light-mode-button:hover {
+  background-color: #57534e;
+}
+
 .share-button .icon,
 .github-button .icon {
   width: 16px;
   height: 16px;
 }
 
-.share-notification {
+.light-mode-button .icon-large {
+  width: 20px;
+  height: 20px;
+}
+
+.light-mode-button {
+  padding: 8px 12px;
+}
+
+.share-notification,
+.light-mode-notification {
   position: fixed;
   bottom: 24px;
   left: 50%;
@@ -89,6 +108,10 @@
   animation: slideUpFade 0.3s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   z-index: 1000;
+}
+
+.light-mode-notification {
+  background-color: #78716c;
 }
 
 /* Quick Context Selector */

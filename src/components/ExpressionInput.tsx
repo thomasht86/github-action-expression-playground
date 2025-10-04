@@ -54,6 +54,13 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
 
   useEffect(() => {
     const evaluateExpression = async () => {
+      // Don't evaluate empty expressions
+      if (!expression || expression.trim() === '') {
+        setResult(null)
+        setIsEvaluating(false)
+        return
+      }
+
       setIsEvaluating(true)
       try {
         const result = await onEvaluate(expression)
@@ -128,15 +135,15 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
     monacoInstance.languages.setMonarchTokensProvider('github-expression', {
       tokenizer: {
         root: [
-          // Contexts
-          [/\b(github|env|vars|secrets|inputs|needs|strategy|matrix|runner|job|steps)\b/, 'keyword'],
+          // Functions (must come before general identifiers)
+          [/\b(contains|startsWith|endsWith|format|join|toJSON|fromJSON|hashFiles)\b/, 'entity.name.function'],
 
-          // Functions
-          [/\b(contains|startsWith|endsWith|format|join|toJSON|fromJSON|hashFiles|success|failure|cancelled|always)\b/, 'function'],
+          // Contexts
+          [/\b(github|env|vars|secrets|inputs|needs|strategy|matrix|runner|job|steps)\b/, 'variable.language'],
 
           // Operators
-          [/==|!=|<|>|<=|>=/, 'operator'],
-          [/&&|\|\||!/, 'operator'],
+          [/==|!=|<|>|<=|>=/, 'keyword.operator'],
+          [/&&|\|\||!/, 'keyword.operator'],
 
           // Strings
           [/'[^']*'/, 'string'],
@@ -146,7 +153,7 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
           [/\d+/, 'number'],
 
           // Properties
-          [/\.\w+/, 'property'],
+          [/\.\w+/, 'support.type'],
         ],
       },
     })
@@ -257,6 +264,54 @@ export function ExpressionInput({ onEvaluate }: ExpressionInputProps) {
 
         return { suggestions }
       },
+    })
+
+    // Register hover provider for documentation
+    monacoInstance.languages.registerHoverProvider('github-expression', {
+      provideHover: (model, position) => {
+        const word = model.getWordAtPosition(position)
+        if (!word) return null
+
+        const docs: Record<string, string> = {
+          // Functions
+          'contains': '**contains(search, item)**\n\nReturns `true` if `search` contains `item`. If `search` is an array, returns `true` if the `item` is an element in the array. If `search` is a string, returns `true` if the `item` is a substring of `search`.',
+          'startsWith': '**startsWith(searchString, searchValue)**\n\nReturns `true` when `searchString` starts with `searchValue`.',
+          'endsWith': '**endsWith(searchString, searchValue)**\n\nReturns `true` if `searchString` ends with `searchValue`.',
+          'format': '**format(string, ...replaceValue)**\n\nReplaces values in the `string`, with variables in `replaceValue`. Variables in the string are specified using the `{N}` syntax, where `N` is an integer.',
+          'join': '**join(array, separator)**\n\nConcatenates the values in `array` using the `separator` as delimiter. Returns a string.',
+          'toJSON': '**toJSON(value)**\n\nReturns a pretty-print JSON representation of `value`. You can use this function to debug the information provided in contexts.',
+          'fromJSON': '**fromJSON(value)**\n\nReturns a JSON object or JSON data type for `value`. You can use this function to provide a JSON object as an evaluated expression or to convert environment variables from a string.',
+          'hashFiles': '**hashFiles(path, ...path)**\n\nReturns a single hash for the set of files that matches the `path` pattern. Note: This function is not available in the playground evaluator.',
+
+          // Contexts
+          'github': '**github context**\n\nInformation about the workflow run and the event that triggered the run. Contains properties like `ref`, `sha`, `repository`, `event_name`, etc.',
+          'env': '**env context**\n\nContains environment variables set in a workflow, job, or step.',
+          'vars': '**vars context**\n\nContains configuration variables set at the repository, organization, or environment levels.',
+          'secrets': '**secrets context**\n\nContains the names and values of secrets that are available to a workflow run.',
+          'matrix': '**matrix context**\n\nContains the matrix properties defined in the workflow that apply to the current job.',
+          'needs': '**needs context**\n\nContains outputs from all jobs that are defined as a direct dependency of the current job.',
+          'runner': '**runner context**\n\nInformation about the runner that is executing the current job. Contains properties like `os`, `arch`, `temp`, etc.',
+          'inputs': '**inputs context**\n\nContains input properties passed to a reusable workflow or manually triggered workflow.',
+          'strategy': '**strategy context**\n\nInformation about the matrix execution strategy for the current job.',
+          'job': '**job context**\n\nInformation about the currently running job.',
+          'steps': '**steps context**\n\nInformation about the steps that have been run in the current job.',
+        }
+
+        const documentation = docs[word.word]
+        if (documentation) {
+          return {
+            range: new monacoInstance.Range(
+              position.lineNumber,
+              word.startColumn,
+              position.lineNumber,
+              word.endColumn
+            ),
+            contents: [{ value: documentation }]
+          }
+        }
+
+        return null
+      }
     })
   }
 
