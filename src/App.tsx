@@ -20,6 +20,15 @@ function App() {
     { name: 'NPM_TOKEN', value: 'npm_secret_token_123', type: 'secrets', scope: 'workflow' },
   ])
   const [showShareNotification, setShowShareNotification] = useState(false)
+  const [matrix, setMatrix] = useState<Record<string, any>>({
+    os: 'ubuntu-latest',
+    node: '18',
+    include: [
+      { os: 'ubuntu-latest', node: '16' },
+      { os: 'ubuntu-latest', node: '18' },
+      { os: 'windows-latest', node: '18' }
+    ]
+  })
   const [github, setGitHub] = useState<Partial<GitHubContext>>({
     repository: 'octocat/hello-world',
     repository_owner: 'octocat',
@@ -84,6 +93,7 @@ function App() {
         const state = JSON.parse(atob(hash))
         if (state.variables) setVariables(state.variables)
         if (state.github) setGitHub(state.github)
+        if (state.matrix) setMatrix(state.matrix)
         // Clear the hash after loading
         window.history.replaceState({}, document.title, window.location.pathname)
       } catch (error) {
@@ -96,10 +106,11 @@ function App() {
   useEffect(() => {
     const state = {
       variables: variables.filter(v => v.type !== 'secrets'),
-      github
+      github,
+      matrix
     }
     localStorage.setItem('github-expressions-evaluator', JSON.stringify(state))
-  }, [variables, github])
+  }, [variables, github, matrix])
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -109,6 +120,7 @@ function App() {
         const state = JSON.parse(saved)
         if (state.variables) setVariables(state.variables)
         if (state.github) setGitHub(state.github)
+        if (state.matrix) setMatrix(state.matrix)
       } catch (error) {
         console.error('Failed to load saved state:', error)
       }
@@ -122,15 +134,7 @@ function App() {
       secrets: {},
       inputs: {},
       github: github as GitHubContext,
-      matrix: {
-        os: 'ubuntu-latest',
-        node: '18',
-        include: [
-          { os: 'ubuntu-latest', node: '16' },
-          { os: 'ubuntu-latest', node: '18' },
-          { os: 'windows-latest', node: '18' }
-        ]
-      },
+      matrix: matrix,
       needs: {
         build: {
           result: 'success',
@@ -172,7 +176,8 @@ function App() {
   const handleShareLink = async () => {
     const state = {
       variables: variables.filter(v => v.type !== 'secrets'),
-      github
+      github,
+      matrix
     }
     const encoded = btoa(JSON.stringify(state))
     const url = `${window.location.origin}${window.location.pathname}#${encoded}`
@@ -222,6 +227,8 @@ function App() {
           <ContextBuilder
             variables={variables}
             onVariablesChange={setVariables}
+            matrix={matrix}
+            onMatrixChange={setMatrix}
           />
         </div>
       </div>

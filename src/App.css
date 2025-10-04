@@ -855,3 +855,26 @@
 .example-dropdown:hover {
   background-color: #454545;
 }
+
+/* Matrix Editor */
+.matrix-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+}
+
+.matrix-monaco-wrapper {
+  border: 1px solid #555555;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.matrix-error {
+  background-color: rgba(244, 135, 113, 0.2);
+  border-left: 3px solid #f48771;
+  padding: 8px 12px;
+  border-radius: 0 3px 3px 0;
+  color: #f48771;
+  font-size: 13px;
+}
