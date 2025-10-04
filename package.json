@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
-    "deploy": "npm run build && gh-pages -d dist"
+    "deploy": "echo 'Deployment is now handled by GitHub Actions. Push to main branch to deploy.'"
   },
   "dependencies": {
     "@actions/expressions": "^0.3.19",
