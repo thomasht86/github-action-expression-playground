@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { GitHubContext } from '../types'
 
 interface QuickContextSelectorProps {
@@ -176,6 +176,13 @@ export function QuickContextSelector({ github, onGitHubChange }: QuickContextSel
   const [branch, setBranch] = useState(github.ref_name || 'main')
   const [eventPreset, setEventPreset] = useState<EventPreset>('push')
   const [showNotification, setShowNotification] = useState(false)
+
+  // Sync local state when github context changes externally (e.g., from URL)
+  useEffect(() => {
+    if (github.repository) setRepository(github.repository)
+    if (github.sha) setSha(github.sha)
+    if (github.ref_name) setBranch(github.ref_name)
+  }, [github.repository, github.sha, github.ref_name])
 
   const handleBranchChange = (newBranch: string) => {
     setBranch(newBranch)

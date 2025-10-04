@@ -167,6 +167,17 @@ export class ExpressionEvaluator {
       }
     }
 
+    // Handle context root variables (github, env, vars, secrets, etc.)
+    if (/^(github|env|vars|secrets|inputs|needs|runner|matrix|strategy|job|steps)$/.test(expression)) {
+      const value = this.context[expression as keyof EvaluationContext]
+      contextHits.push(expression)
+      return {
+        value,
+        type: typeof value,
+        contextHits
+      }
+    }
+
     throw new Error(`Unable to parse expression: ${expression}`)
   }
 
