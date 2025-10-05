@@ -2,7 +2,7 @@
 .evaluator-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   background-color: #1e1e1e;
   color: #cccccc;
 }
@@ -212,7 +212,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 0;
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .left-panel {
@@ -1079,6 +1079,7 @@
   .main-content {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
+    overflow: visible;
   }
 
   .left-panel {
@@ -1090,6 +1091,7 @@
 
   .right-panel {
     padding: 16px;
+    overflow-y: visible;
   }
 
   /* Variable table - stack columns on mobile */
